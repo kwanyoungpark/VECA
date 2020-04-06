@@ -1,5 +1,11 @@
 # VECA (VR Toolkit for Training and Testing Cognitive Agents)
 
+## Notification
+
+This repository currently only contains examples of VECA, i.e. doesn't contain any main codes of VECA.
+It means that installing and making custom environments with VECA is currently not available. (End-user examples are available.)
+We are planning to release the complete source code of VECA after acceptance.
+
 ## Contents
 
 <!--
@@ -22,13 +28,13 @@ Our preliminary evaluation shows that the agent trained with rich perceptions ca
 
 <img src="VECA_SYSTEM.png" alt="system_diagram" width="600"/>
 
-## Installation
+## Installation (Currently not available)
 
 ### VECA-unity
 
 1. Install Unity from https://unity.com. (Please note that current VECA-unity is built in version 2019.1.10f1. We recommend to install "Unity hub" from [here](https://unity3d.com/get-unity/download) which can install multiple unity versions easily.)
 
-2. Download the [Asset.zip](https://drive.google.com/file/d/19D1K26_RKYbrp56BMDLBiSTkxMHLr1ud/view?usp=sharing), and unzip it to create the Assets folder. 
+2. Download the [Asset.zip], and unzip it to create the Assets folder. 
  
 3. Make a blank unity project and replace the whole *Assets* folder with the downloaded *Assets* folder. 
 
@@ -109,4 +115,3 @@ We provide you the tutorial of how to use the OpenAI gym-like python-side Enviro
 ## [Documentation](documentation.md)
 
 We provide you a detailed documentation of VECA APIs, and the description of current repository directory structure.
-
