@@ -3,8 +3,8 @@
 ## Notification
 
 This repository currently only contains examples of VECA, i.e. doesn't contain any main codes of VECA.
-It means that installing and making custom environments with VECA is currently not available. (End-user examples are available.)
-We are planning to release the complete source code of VECA after acceptance.
+
+That is, installing and making custom environments with VECA is **currently not available**. (End-user examples are available.)
 
 ## Contents
 
