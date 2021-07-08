@@ -1,0 +1,84 @@
+*이 TUTORIAL은 Windows 기준입니다. VECA는 (적어도 LocalMPWrapper와 환경은) Windows 환경에서 실행하는 것을 추천드립니다. *
+
+파일을 다운로드하면, LocalMPWrapper, COGNIADemoApp, PythonWrapper 3개의 폴더가 있습니다.
+
+1. Setup
+
+1) LocalMPWrapper에 있는 DiskTowerEnv.py에서 7번째 줄을 고쳐주세요(경로 변경):
+
+~ exec_str = "(다운로드 받은 경로)\\BabyMindDiskTowerApp\\BabyMindDG.exe"
+(만약 LocalMPWrapper랑 환경 경로를 유지하신다면 안고치셔도 됩니다)
+
+2) LocalMPWrapper에 있는 COGNIADemoEnv.py에서 10번째 줄을 고쳐주세요(알고리즘 쪽 ip 변경):
+
+~ ip = (GPU 서버 IP)
+
+만약 알고리즘 또한 같은 컴퓨터에 있다면 localhost(127.0.0.1)로 설정해주세요.
+
+3) PythonWrapper 안의 test.py에서 4번째줄을 고쳐주세요(포트설정, 기본은 8872로 설정되어 있습니다):
+
+~ port = (GPU 서버 포트)
+
+2. 실행: Single environment
+
+명령프롬포트(cmd)가 2개 필요합니다. (Python wrapper를 가지고 있는 서버 측 cmd, LocalMPWrapper를 가지고 있는 로컬 측 cmd)
+
+0) test.py에서 4번째 줄을 고쳐주세요(environment 개수)
+
+~ NUM_ENVS = 1
+
+1) 첫번째 프롬포트에서 PythonWrapper에 있는 test.py를 실행해주세요:
+
+>> python test.py
+
+그리고 "0.0.0.0"이 나타날때 까지 기다려주세요 (연결 waiting time)
+
+2) 그 다음 LocalMPWrapper에 있는 DiskTowerEnv.py를 실행시켜주세요:
+
+>> python COGNIADemoEnv.py (GPU 서버 포트) 7777 1
+P.S. 7777은 (GPU 서버 포트)와 다른 숫자이면서 valid한 Local 포트 번호이면 됩니다.
+
+그러면 연결이 되면서 random action을 할 것입니다.
+
+3. 실행: 8 cocurrent environment (A3C등을 위한 parallel execution)
+마찬가지로 명령프롬포트(cmd)가 2개 필요합니다.
+
+0) test.py에서 4번째 줄을 고쳐주세요(environment 개수)
+
+~ NUM_ENVS = 8
+
+1) 첫번째 프롬포트에서 PythonWrapper에 있는 test.py를 실행해주세요:
+
+>> python test.py
+
+그리고 "0.0.0.0"이 나타날때 까지 기다려주세요 (연결 waiting time)
+
+2) 그 다음 LocalMPWrapper에 있는 DiskTowerEnv.py를 실행시켜주세요:
+
+>> python DiskTowerEnv.py (GPU 서버 포트) 7777 8
+P.S. 7777은 [N, N+8)이 (GPU 서버 포트)와 겹치지 않으면서 valid한 Local 포트 번호 N이면 됩니다.
+
+그러면 8개의 environment에 parallel로 연결이 되면서 random action을 할 것입니다.
+
+4. 녹화 (with hand-crafted algorithm)
+
+0)  LocalMPWrapper에 있는 DiskTowerEnv.py에서 7번째 줄을 각주처리하고 8번째 줄을 각주해제해주세요. (record argument 추가)
+
+~ #args = ["-train", "-timeout", "-1", "-notactile"]
+~ args = ["-train", "-timeout", "-1", "-notactile", "-record"]
+
+1) 첫번째 프롬포트에서 PythonWrapper에 있는 handcrafted_policy.py를 실행해주세요:
+
+>> python handcrafted_policy.py
+
+그리고 "0.0.0.0"이 나타날때 까지 기다려주세요 (연결 waiting time)
+
+2) 그 다음 LocalMPWrapper에 있는 DiskTowerEnv.py를 실행시켜주세요:
+
+>> python DiskTowerEnv.py (GPU 서버 포트) 7777 1
+P.S. 7777은 (GPU 서버 포트)와 다른 숫자이면서 valid한 Local 포트 번호이면 됩니다.
+
+그러면 연결이 되면서 hand-crafted policy를 통해 action을 할 것입니다.
+끝나고 나면 녹화본이 record.mp4로 저장됩니다.
+
+

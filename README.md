@@ -1,117 +1,107 @@
-# VECA (VR Toolkit for Training and Testing Cognitive Agents)
+# VECA
 
-## Notification
+![veca_overview](./docs/veca.png)
 
-This repository currently only contains examples of VECA, i.e. doesn't contain any main codes of VECA.
+## Prerequisite
 
-That is, installing and making custom environments with VECA is **currently not available**. (End-user examples are available.)
+VECA environment requires two separate terminal sessions to properly execute it. One is to execute `Unity3D-based Environment` (*Environment* from now on), and the other is to execute the `agent algorithm` (*Algorithm* from now on). A session executing the environment should be executed on `Windows OS`. 
 
-## Contents
+Two sessions need not be on the same machine, since the communication between the environment and algorithm is socket-based. So the environment can run on Windows desktop, and the agent algorithm can run on linux cluster server. To sum up, the OS requirement is as follows:
 
-<!--
-In-document header reference should be preceded with hashtag, then each alphabets lower cased, and each space substituted as hyphen(-). Header should not include characters other than alphabet or number.
--->
+* Environment session: Windows OS 
 
-* [Introduction](#introduction)
-* [Installation](#installation)
-* [Usage and Tutorial](#usage-and-tutorial)
-* [Documentation](#documentation)
+* Algorithm session: Any OS supporting python3 
 
+You need python3 and ffmpeg to execute scripts. In Ubuntu, you can install them with following command.
+```
+sudo apt install python3 ffmpeg
+```
 
-## Introduction
+You also need 3 python packages numpy, moviepy, and pillow. You can install them with following command.
+```
+pip install numpy moviepy pillow
+```
+or use `requirements.txt` file to install as follows:
+```
+pip install -r requirements.txt
+```
 
-The concept of cognitive agent, capable of acting and interacting with an environment for cognitive development and learning, is receiving increasing attention as a way to overcome the limitations of deep learning algorithms.
-However, it is extremely challenging to develop such cognitive agents due to a lack of tools to train and test them. 
-In this paper, we propose a novel VR-based toolkit, VECA, which enables to train and test cognitive agents in a virtual environment. 
-In particular, VECA provides a virtual humanoid avatar with rich human-like perceptions and an environment for the agent to interact, with which development of cognitive agents can be facilitated. 
-Our preliminary evaluation shows that the agent trained with rich perceptions can achieve higher learning performance for the task to kick a ball, while the agent with a single perception fails to learn certain interaction patterns thereby getting lower performance. 
+## Installation
 
-<img src="VECA_SYSTEM.png" alt="system_diagram" width="600"/>
+1. Clone this veca repository. Both the *environment* and *algorithm* session should clone it.
+```
+git clone https://gitlab.com/hcslab/projects/babymind/veca_public.git
+```
 
-## Installation (Currently not available)
+2. (Only for the *environment* session) Create `bin` directory inside the repository, 
+```
+mkdir bin && cd bin
+```
+and download the zip file `disktower.zip` containing a unity application executable. 
 
-### VECA-unity
+* click [google drive link](https://drive.google.com/file/d/1mQEpN0wqztujGxtyYxARv_c_fxCAmIey/view?usp=sharing) to download, 
+* OR use [gdown](https://github.com/wkentaro/gdown) program to download from the commandline.
 
-1. Install Unity from https://unity.com. (Please note that current VECA-unity is built in version 2019.1.10f1. We recommend to install "Unity hub" from [here](https://unity3d.com/get-unity/download) which can install multiple unity versions easily.)
-
-2. Download the [Asset.zip], and unzip it to create the Assets folder. 
- 
-3. Make a blank unity project and replace the whole *Assets* folder with the downloaded *Assets* folder. 
-
-4. Turn off the unity editor and restart it, then it would recognize the change and reimport all the assets. If something goes wrong, use `Assets > Reimport All` of the option menu. It may take some time(~10 min)
-
-4. Go to  `Window > Package Manager`  of the menu and switch the view from  `In Project`  to  `All Packages`. Select `Postprocessing` in the list and install. 
-
-### VECA-python
-
-You can install VECA-python by building it from source. Download and install using:
-
-
-```console
-$ git clone https://gitlab.com/hcslab/babymind/veca.git
-$ cd VECA/python/VECA-python/
-$ pip install -e .
+```
+gdown https://drive.google.com/uc?id=1mQEpN0wqztujGxtyYxARv_c_fxCAmIey
 
 ```
 
-## Usage and Tutorial
 
+3. (Only for the *environment* session) unzip the downloaded zip file, and go back to root directory of the repo.
 
-### VECA-unity (VECA & Training Environment)
-
-For tutorial, let's use the KickTheBall environment. 
-It is in the Assets/Examples/KickTheBall folder, 
-and you can open it by double-clicking the *KickTheBallScene* scene in the unity project structure. 
-Then you will see the baby agent standing middle of the room.
-
-Now next step is to.... run! 
-Just run the scene with the play button in the top of the unity editor. 
-You can control the baby using keyboards : 
-W/S/Q/E/A/D makes the baby go forward/go back/rotate left/rotate right/walk left/walk right. 
-If the baby goes in front of the ball, it kicks the ball automatically. 
-Have some fun! :smile:
-
-#### How to Build Application
-
-To integrate VECA-unity environment with VECA-python, you have to build the application from the scene. 
-Go to `File > Build Settings` and choose your platform. Press `Build` and choose the build output directory. 
-
-Please note that executable application depends on the target platform. In specific:
-
-* Windows - ApplicationName.exe 
-* MacOS - ApplicationName
-* Linux - ApplicationName
-
-You may execute those in commandline with arguments such as:
-
-```console
-$ ./ApplicationName -debug
+```
+unzip disktower.zip
+cd ../
 ```
 
-#### [Tutorial](unity/tutorial.md)
+### Other tasks 
+Unity application executables for tasks besides DiskTower are available in the following google drive links. Download and unzip it on a different directory. Modify an unity executable path in the `env_manager.py` script to use it.
 
-We provide you the tutorial of the internal logic of unity-side implementation.
-You can refer it to understand it and do a further tweak or customization of the unity-side implementation.
+* KickTheBall task: [google drive link](https://drive.google.com/file/d/1jIxQyA2rS54-XH_AQxfWXRJqcYepMZ_T/view?usp=sharing)
+* MazeNav task: [google drive link](https://drive.google.com/file/d/1SSsQIklTFChWRvR14aRB9lTzMgMdPorv/view?usp=sharing)
+* BabyRun task: [google drive link](https://drive.google.com/file/d/1LZYNrQ8JUQEgT-rx_pTs_clwzeOHXqlI/view?usp=sharing)
 
-### VECA-python (Cognitive Agent)
+## Usage
 
-For server-side python code, import and inherit the GeneralEnvironment class, as following, to suit your need. Refer to `python/Example/KickTheBallEnv.py` for exemplar usage.
+The configuration of each script can be altered in two ways: modify a default config inside the script; or specify the optional argument on execution.
 
-```python
-from environment import GeneralEnvironment
+NOTE:
+* env_manager.py should be executed **before** the algorithm.py
+* IP and ALGO_PORT of algorithm.py should match the ip and port of env_manager.py script's machine IP and ALGO_PORT.
 
-class MyEnvironment(GeneralEnvironment):
-    ...
+The agent algorithm can be executed using this command.
+
+```
+python algorithm.py
 ```
 
-The common practice is to only override the *step* function of the *GeneralEnvironment* class.
+Configuration of algorithm e.g., number of parallel environments, port of algorithm server, can be altered.
+```
+usage: algorithm.py [-h] [--ip IP] [--port ENV_PORT] [--num_envs NUM_ENVS]
 
-#### [Tutorial](python/tutorial.md)
+VECA Algorithm Server
 
-We provide you the tutorial of how to use the OpenAI gym-like python-side Environment.
+optional arguments:
+  -h, --help           show this help message and exit
+  --ip IP              Envionment Manager machine's ip
+  --port ENV_PORT      Environment Manager's port
+  --num_envs NUM_ENVS  Number of parallel environments to execute
+```
 
+The environment can be executing using this command.
+```
+python env_manager.py
+```
+Configuration of environment e.g., number of parallel environments, ip and port of algorithm server, can be altered.
+```
+usage: env_manager.py [-h] [--executable EXECUTABLE] [--port PORT]
 
+VECA Environment Manager
 
-## [Documentation](documentation.md)
-
-We provide you a detailed documentation of VECA APIs, and the description of current repository directory structure.
+optional arguments:
+  -h, --help            show this help message and exit
+  --executable EXECUTABLE
+                        Unity Executable Path
+  --port PORT           Port exposed for algorithm
+```
