@@ -30,7 +30,7 @@ pip install -r requirements.txt
 
 1. Clone this veca repository. Both the *environment* and *algorithm* session should clone it.
 ```
-git clone https://gitlab.com/hcslab/projects/babymind/veca_public.git
+git clone https://github.com/GGOSinon/VECA.git
 ```
 
 2. (Only for the *environment* session) Create `bin` directory inside the repository, 
@@ -70,6 +70,23 @@ NOTE:
 * env_manager.py should be executed **before** the algorithm.py
 * IP and ALGO_PORT of algorithm.py should match the ip and port of env_manager.py script's machine IP and ALGO_PORT.
 
+The environment manager can be executing using this command.
+```
+python env_manager.py
+```
+Configuration of environment e.g., number of parallel environments, ip and port of algorithm server, can be altered.
+```
+usage: env_manager.py [-h] [--executable EXECUTABLE] [--port PORT]
+
+VECA Environment Manager
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --executable EXECUTABLE
+                        Unity Executable Path
+  --port PORT           Port exposed for algorithm
+```
+
 The agent algorithm can be executed using this command.
 
 ```
@@ -87,21 +104,4 @@ optional arguments:
   --ip IP              Envionment Manager machine's ip
   --port ENV_PORT      Environment Manager's port
   --num_envs NUM_ENVS  Number of parallel environments to execute
-```
-
-The environment can be executing using this command.
-```
-python env_manager.py
-```
-Configuration of environment e.g., number of parallel environments, ip and port of algorithm server, can be altered.
-```
-usage: env_manager.py [-h] [--executable EXECUTABLE] [--port PORT]
-
-VECA Environment Manager
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --executable EXECUTABLE
-                        Unity Executable Path
-  --port PORT           Port exposed for algorithm
 ```
