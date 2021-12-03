@@ -107,3 +107,20 @@ optional arguments:
   --port ENV_PORT      Environment Manager's port
   --num_envs NUM_ENVS  Number of parallel environments to execute
 ```
+
+## Acknowledgements
+
+This work was supported by Institute for Information & communications Technology Promotion(IITP) grant funded by the Korea government(MSIT) (No.2019-0-01371, Development of brain-inspired AI with human-like intelligence
+
+## Citation
+
+ If you find this work useful in your research, please cite
+```
+ @article{park2021veca,
+  title={VECA: A Toolkit for Building Virtual Environments to Train and Test Human-like Agents},
+  author={Park, Kwanyoung and Oh, Hyunseok and Lee, Youngki},
+  journal={arXiv preprint arXiv:2105.00762},
+  year={2021}
+}
+```
+
