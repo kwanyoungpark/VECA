@@ -1,5 +1,7 @@
 # VECA
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+
 ![veca_overview](./docs/veca.png)
 
 ## Prerequisite
