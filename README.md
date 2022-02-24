@@ -4,6 +4,8 @@
 
 ![veca_overview](./docs/veca.png)
 
+VECA is currently preparing for the public release of Bayley-4 cognitive tasks, Unity packages, and additional system optimizations. Sorry for the delay.
+
 ## Prerequisite
 
 VECA environment requires two separate terminal sessions to properly execute it. One is to execute `Unity3D-based Environment` (*Environment* from now on), and the other is to execute the `agent algorithm` (*Algorithm* from now on). A session executing the environment should be executed on `Windows OS`. 
