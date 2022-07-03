@@ -7,8 +7,10 @@ from PIL import Image
 from veca.gym.core.environment import EnvModule
 import pickle
 
-VISION = True
+VISION = False
 AUDIO = False
+TACTILE = True
+
 SIM = 'VECA'
 MODE = 'CONT'
 VEC_OBJ = True
@@ -23,49 +25,56 @@ NUM_TIME = 1
 FRAME_SKIP = 1
 
 class Environment(EnvModule):
-    def __init__(self, num_envs,ip,port,  args):
-        EnvModule.__init__(self, num_envs,ip,port, args)
-        self.name = 'BabyRun'
+    def __init__(self, task,num_envs,ip,port,  args):
+        EnvModule.__init__(self,task, num_envs,ip,port, args)
+        self.name = 'RunBaby'
         self.SIM = 'VECA'
         self.mode = 'CONT'
-        self.stepnum = np.zeros(num_envs)
-        self.episode = np.zeros(num_envs)
+        
         self.observation_space = {
             'image': (6, 84, 84),
-            'obj': (NUM_OBJS)
+            'touch': (5 * 82 + 9888)
         }
-        self.VEC_OBJ = VEC_OBJ
-        self.NUM_OBJS = NUM_OBJS
-        self.action_length = self.action_space - 1
-        self.prev_dist = np.zeros(num_envs)
-        #self.action_space = 2
+        if TACTILE is False:
+            self.observation_space['touch'] = (5 * 82)
+
+        #self.tracker = momentsTracker(self.observation_space['touch'], 0.)
 
     def collect_observations(self, ignore_agent_dim = True):
         data = super().collect_observations(ignore_agent_dim = True)
-        rewards, done, info, objs = [], [], [], []
+        rewards, dones, info, touchs = [], [], [], []
+        #posLs, posRs, posOs = [], [], []
         imgs = []
 
         IMG_C, IMG_H, IMG_W = self.observation_space['image']
+        TACTILE_L = self.observation_space['touch']
         
         #print(data.keys())
         #print(self.obj_data.keys())
-        mask = np.zeros(self.num_envs, dtype = np.bool)
         for i in range(self.num_envs):
-            img = list(reversed(data['img'][i]))
-            doneA = data['done'][i][0]
-            reward = data['reward'][i][0]
-            img = np.reshape(np.array(img), [IMG_C, IMG_H, IMG_W]) / 255.0
-            imgs.append(img)
-            rewards.append(reward)
-            if doneA:
-                done.append(True)
+            if VISION:
+                img = list(reversed(data['img'][i]))
+                img = np.reshape(np.array(img), [IMG_C, IMG_H, IMG_W]) / 255.0
+                imgs.append(img)
+            obsP = data['obs'][i]
+            if TACTILE:
+                touch = data['tactile'][i]
+                touchs.append(np.concatenate([touch, obsP], axis = 0))
             else:
-                done.append(False)
-        self.reset(mask)
-        imgs = np.array(imgs)
-        info = {}
-        obs = {'image': imgs,}
-        return (obs, rewards, done, info)
+                touchs.append(obsP)
 
-    def send_action(self, action):
-        super().send_action(action)
+            #done = data['done'][i][0]
+            done = False
+            reward = data['reward'][i][0]
+            if done: dones.append(True)
+            else: dones.append(False)
+            rewards.append(reward)
+        info = None
+        touchs = np.array(touchs)
+        if VISION:
+            imgs = np.array(imgs)
+            obs = {'touch':touchs, 'image': imgs,}
+        else:
+            obs = {'touch':touchs,}
+        return (obs, rewards, dones, info)
+

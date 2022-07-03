@@ -5,12 +5,12 @@ from veca.utils import decode, recvall, types, typesz, STATUS, build_packet, rec
 import json, base64
 
 class EnvModule():
-    def __init__(self, num_envs, ip, port,args):
+    def __init__(self, task, num_envs, ip, port,args):
         ip = socket.gethostbyname(ip)
         self.num_envs = num_envs
         total_num_envs = num_envs
         self.conn = self.start_connection(ip, port)
-        self.env_init(num_envs, total_num_envs, args)
+        self.env_init(task, num_envs, total_num_envs, args)
     
     def start_connection(self,ip, port):
         conn = socket.socket()
@@ -21,8 +21,8 @@ class EnvModule():
         print("CONNECTED TO ENV SERVER")
         return conn
         
-    def env_init(self, num_envs, total_num_envs, args):
-        payload = {"NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args}
+    def env_init(self, task, num_envs, total_num_envs, args):
+        payload = {"task": task,"NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args}
         packet = build_json_packet(STATUS.INIT, payload)
         self.conn.sendall(packet)
         

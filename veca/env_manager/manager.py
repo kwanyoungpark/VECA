@@ -5,7 +5,19 @@ import time
 from veca.env_manager.env import UnityEnv
 from veca.utils import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
 import base64 
+import os.path, gdown, zipfile, os
 
+class TaskInfo():
+    def __init__(self, path, download_link):
+        self.path = path
+        self.download_link = download_link
+
+task_executable={
+        "disktower" : TaskInfo("./env_manager/bin/disktower/VECA_latest.exe", "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P"),
+        "kicktheball" : TaskInfo("./env_manager/bin/kicktheball/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ"),
+        "mazenav" : TaskInfo("./env_manager/bin/mazenav/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1nU512vgk7QytXQQtgNz9gZ5hHd4oR_wb"),
+        "babyrun" : TaskInfo("./env_manager/bin/babyrun/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0"),
+}
 
 def validate_ip_and_port(ip, port, num_envs):
     ip = socket.gethostbyname(ip)
@@ -20,9 +32,8 @@ def validate_ip_and_port(ip, port, num_envs):
     return ip,port
 
 class EnvManager():
-    def __init__(self,  port,exec_str, localport = 46490):
+    def __init__(self,  port, localport = 46490):
         self.localport = localport
-        self.exec_str = exec_str
         
         self.listen(port)
         self.conn, addr = self.sock.accept()
@@ -38,11 +49,28 @@ class EnvManager():
 
     def serve(self):    
         _, _, packet = recv_json_packet(self.conn)
+        self.task = packet["task"]
         self.TOTAL_NUM_ENVS = packet["TOTAL_NUM_ENVS"]
         self.NUM_ENVS = packet["NUM_ENVS"]
         self.args = packet["args"]
         #if self.TOTAL_NUM_ENVS % self.NUM_ENVS != 0:
         #    raise NotImplementedError('NOT SUPPORTED YET')
+        if self.task not in task_executable.keys():
+            raise NotImplementedError('TASK NOT SUPPORTED YET')
+        self.exec_str = task_executable[self.task].path
+        if not os.path.exists(self.exec_str):
+            url = task_executable[self.task].download_link
+            exec_dir = os.path.dirname(self.exec_str)
+            os.makedirs(exec_dir, exist_ok=True)
+            output = os.path.join(exec_dir, self.task + ".zip")
+            gdown.download(url, output, quiet=False)
+            print(output)
+            with zipfile.ZipFile(output, 'r') as zip_ref:
+                zip_ref.extractall(exec_dir)
+                print(exec_dir)
+            if not os.path.exists(self.exec_str):
+                raise ValueError('CANNOT DOWNLOAD TASK EXECUTABLE.')
+
         self.ENVS_PER_ENV = self.TOTAL_NUM_ENVS // self.NUM_ENVS
             
         self.envs = []

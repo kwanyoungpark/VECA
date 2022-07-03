@@ -23,8 +23,8 @@ NUM_TIME = 1
 FRAME_SKIP = 1
 
 class Environment(EnvModule):
-    def __init__(self, num_envs,ip,port,  args):
-        EnvModule.__init__(self, num_envs,ip,port, args)
+    def __init__(self,task, num_envs,ip,port,  args):
+        EnvModule.__init__(self, task, num_envs,ip,port, args)
         self.name = 'MazeNav'
         self.SIM = 'VECA'
         self.mode = 'CONT'
@@ -36,9 +36,9 @@ class Environment(EnvModule):
         }
         self.VEC_OBJ = VEC_OBJ
         self.NUM_OBJS = NUM_OBJS
-        self.action_length = self.action_space - 1
+        #self.action_length = self.action_space - 1
         self.prev_dist = np.zeros(num_envs)
-        #self.action_space = 2
+        #self.action_space = self.action_space - 1
         '''
         if VEC_OBJ == False:
             with open('navigation/data/data.pkl', 'rb') as F:
@@ -53,7 +53,7 @@ class Environment(EnvModule):
 
         IMG_C, IMG_H, IMG_W = self.observation_space['image']
         
-        #print(data.keys())
+        print(data.keys())
         #print(self.obj_data.keys())
         mask = np.zeros(self.num_envs, dtype = np.bool)
         for i in range(self.num_envs):
@@ -69,9 +69,12 @@ class Environment(EnvModule):
             #posf[0], posf[1], posf[2] = np.tanh(posf[0] - 0.5), posf[1], np.tanh(posf[2])
             obj = str(data['obj'][i])
             if VEC_OBJ:
-                obj_oh = np.zeros([NUM_OBJS])
-                obj_oh[OBJ_NAME.index(obj)] = 1.
-                objs.append(obj_oh)
+                if obj is None or obj == 'None':
+                    objs.append(obj)
+                else:
+                    obj_oh = np.zeros([NUM_OBJS])
+                    obj_oh[OBJ_NAME.index(obj)] = 1.
+                    objs.append(obj_oh)
             else:
                 objs.append(np.reshape(self.obj_data[obj], [NUM_DEGS, IMG_H, IMG_W]))
             img = np.reshape(np.array(img), [IMG_C, IMG_H, IMG_W]) / 255.0
@@ -112,9 +115,10 @@ class Environment(EnvModule):
         return (obs, rewards, done, info)
 
     def send_action(self, action):
+        
         AR = np.zeros((self.num_envs, 1))
         for i in range(self.num_envs):
             if self.stepnum[i] == 256:
                 AR[i][0] = 1
-        action = np.concatenate([action, AR], axis = 1)
+        action[:,-1] = AR #np.concatenate([action, AR], axis = 1)
         super().send_action(action)

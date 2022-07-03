@@ -14,8 +14,8 @@ def wav2freq(wav):
     return wav
 
 class Environment(EnvModule):
-    def __init__(self, num_envs, ip,port,args):
-        EnvModule.__init__(self, num_envs, ip,port,args)
+    def __init__(self, task, num_envs, ip,port,args):
+        EnvModule.__init__(self, task, num_envs, ip,port,args)
         self.num_envs = num_envs
     
     def step(self, action):

@@ -15,8 +15,8 @@ from moviepy.audio.AudioClip import AudioArrayClip
 
 WAV_K = 10
 class Environment(GeneralEnvironment):
-    def __init__(self, num_envs, port = 8870):
-        GeneralEnvironment.__init__(self, num_envs, port)
+    def __init__(self, task, num_envs, port = 8870):
+        GeneralEnvironment.__init__(self, task, num_envs, port)
         self.name = 'COGNIANav'
         self.SIM = 'VECA'
         self.mode = 'CONT'

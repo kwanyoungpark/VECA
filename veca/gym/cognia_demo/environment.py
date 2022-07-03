@@ -9,8 +9,8 @@ from veca.gym.core.environment import EnvModule
 import pickle
 
 class Environment(EnvModule):
-    def __init__(self, num_envs, port = 8870):
-        EnvModule.__init__(self, num_envs, ip, port, args)
+    def __init__(self, task, num_envs, port = 8870):
+        EnvModule.__init__(self,task, num_envs, ip, port, args)
         self.name = 'COGNIADemo'
         self.SIM = 'VECA'
         self.mode = 'CONT'

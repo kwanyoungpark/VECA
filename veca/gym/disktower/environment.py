@@ -19,8 +19,8 @@ class Environment(EnvModule):
     done : (NUM_ENVS)            np.bool        True if the episode is over
     reward : (NUM_ENVS)          np.float32     0~5, calculated as number of successfully stacked disks
     '''
-    def __init__(self, num_envs, ip, port, args):
-        EnvModule.__init__(self, num_envs, ip, port, args)
+    def __init__(self, task, num_envs, ip, port, args):
+        EnvModule.__init__(self, task, num_envs, ip, port, args)
         self.name = 'DiskTower'
         self.SIM = 'VECA'
         self.mode = 'CONT'
