@@ -13,10 +13,10 @@ class TaskInfo():
         self.download_link = download_link
 
 task_executable={
-        "disktower" : TaskInfo("./env_manager/bin/disktower/VECA_latest.exe", "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P"),
-        "kicktheball" : TaskInfo("./env_manager/bin/kicktheball/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ"),
-        "mazenav" : TaskInfo("./env_manager/bin/mazenav/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1nU512vgk7QytXQQtgNz9gZ5hHd4oR_wb"),
-        "babyrun" : TaskInfo("./env_manager/bin/babyrun/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0"),
+        "disktower" : TaskInfo("./veca/env_manager/bin/disktower/VECA_latest.exe", "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P"),
+        "kicktheball" : TaskInfo("./veca/env_manager/bin/kicktheball/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ"),
+        "mazenav" : TaskInfo("./veca/env_manager/bin/mazenav/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1nU512vgk7QytXQQtgNz9gZ5hHd4oR_wb"),
+        "babyrun" : TaskInfo("./veca/env_manager/bin/babyrun/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0"),
 }
 
 def validate_ip_and_port(ip, port, num_envs):
