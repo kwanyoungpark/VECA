@@ -3,7 +3,7 @@ import socket
 import sys,json
 import time
 from veca.env_manager.env import UnityEnv
-from veca.utils import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
+from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
 import base64 
 import os.path, gdown, zipfile, os
 

@@ -4,8 +4,8 @@ import struct
 import os
 import time
 import random
-from PIL import Image
-from moviepy.editor import *
+#from PIL import Image
+#from moviepy.editor import *
 from veca.gym.core.environment import EnvModule
 import pickle
 

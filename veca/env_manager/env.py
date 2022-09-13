@@ -2,7 +2,7 @@ import numpy as np
 import socket
 import subprocess
 import time
-from veca.utils import decode, recvall, types, typesz
+from veca.network import decode, recvall, types, typesz
 
 class UnityEnv():
     def __init__(self, NUM_ENVS, port, exec_str, args):

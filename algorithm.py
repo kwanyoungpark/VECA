@@ -6,7 +6,7 @@ cfg_default = {
         "env_manager_ip" : "127.0.0.1",
         "env_manager_port" : 8872,
         "num_envs" : 1,
-        "task":"kicktheball",
+        "task":"disktower",
         "optional_args" : ["-train", "-timeout", "-1", "--numagents", "1"],
         #"optional_args" : ["-train", "-timeout", "-1", "-record"] # creates recorded video file on env.close()
 }

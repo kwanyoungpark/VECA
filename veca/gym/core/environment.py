@@ -1,7 +1,7 @@
 import numpy as np
 import socket
 import struct
-from veca.utils import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
+from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
 import json, base64
 
 class EnvModule():
