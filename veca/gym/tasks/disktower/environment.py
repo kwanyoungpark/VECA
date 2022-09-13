@@ -20,7 +20,9 @@ class Environment(EnvModule):
     reward : (NUM_ENVS)          np.float32     0~5, calculated as number of successfully stacked disks
     '''
     def __init__(self, task, num_envs, ip, port, args):
-        EnvModule.__init__(self, task, num_envs, ip, port, args)
+        EnvModule.__init__(self, task, num_envs, ip, port, args,
+            exec_path = "./veca/env_manager/bin/disktower/VECA_latest.exe",
+            download_link = "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P")
         self.name = 'DiskTower'
         self.SIM = 'VECA'
         self.mode = 'CONT'
@@ -75,7 +77,7 @@ class Environment(EnvModule):
         return (obs, rewards, done, info)
 
     def write_record(self):
-        image_clip = ImageSequenceClip(self.imgsRec, fps=15) 
+        #image_clip = ImageSequenceClip(self.imgsRec, fps=15) 
         print(self.imgsRec[0].shape, self.imgsRec[0].dtype, self.imgsRec[0].max())
         '''
         audios = np.concatenate(self.wavsRec, axis = 1)
@@ -87,4 +89,4 @@ class Environment(EnvModule):
         video_clip.write_videofile("result.mp4", fps=15, temp_audiofile="temp-audio.m4a", remove_temp=True, codec="libx264", audio_codec="aac")
         '''
         
-        image_clip.write_videofile("result.mp4", fps=15,remove_temp=True, codec="libx264", audio_codec="aac")
+        #image_clip.write_videofile("result.mp4", fps=15,remove_temp=True, codec="libx264", audio_codec="aac")

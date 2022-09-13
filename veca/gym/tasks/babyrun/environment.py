@@ -26,7 +26,9 @@ FRAME_SKIP = 1
 
 class Environment(EnvModule):
     def __init__(self, task,num_envs,ip,port,  args):
-        EnvModule.__init__(self,task, num_envs,ip,port, args)
+        EnvModule.__init__(self,task, num_envs,ip,port, args, 
+            exec_path = "veca/env_manager/bin/babyrun/VECA-BS.exe",
+            download_link = "https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0")
         self.name = 'RunBaby'
         self.SIM = 'VECA'
         self.mode = 'CONT'

@@ -34,6 +34,9 @@ class Environment(EnvModule):
             'image': (6, 84, 84),
             'obj': (NUM_OBJS)
         }
+        self.exec_path = "veca/env_manager/bin/mazenav/VECA-BS.exe"
+        self.download_link = "https://drive.google.com/uc?export=download&id=1nU512vgk7QytXQQtgNz9gZ5hHd4oR_wb"
+        
         self.VEC_OBJ = VEC_OBJ
         self.NUM_OBJS = NUM_OBJS
         #self.action_length = self.action_space - 1

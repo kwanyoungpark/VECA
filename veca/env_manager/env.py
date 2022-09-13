@@ -4,7 +4,7 @@ import subprocess
 import time
 from veca.network import decode, recvall, types, typesz
 
-class UnityEnv():
+class UnityInstance():
     def __init__(self, NUM_ENVS, port, exec_str, args):
         self.port = port
         self.exec_str = exec_str

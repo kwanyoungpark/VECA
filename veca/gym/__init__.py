@@ -10,7 +10,7 @@ task_env = {
         "babyrun": env_babyrun,
     }
 '''
-from veca.gym.core.environment import EnvModule
+from veca.gym.core import EnvModule
 
 
 import os, sys, importlib.util, glob
@@ -27,6 +27,8 @@ def import_module_from_path(path, name):
 def sanity_check(task_module):
     assert hasattr(task_module, "Environment")
     assert issubclass(task_module.Environment, EnvModule)
+    print(dir(task_module.Environment))
+    assert hasattr(task_module.Environment, 'exec_path') and hasattr(task_module.Environment, 'download_link')
     return
 
 def import_envs_from_dir(tasks_dir, task_name = None):

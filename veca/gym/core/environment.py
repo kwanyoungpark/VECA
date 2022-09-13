@@ -3,14 +3,24 @@ import socket
 import struct
 from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
 import json, base64
+import time
 
 class EnvModule():
-    def __init__(self, task, num_envs, ip, port,args):
+
+    @property
+    def exec_path(self):
+        raise NotImplementedError
+
+    @property
+    def download_link(self):
+        raise NotImplementedError
+
+    def __init__(self, task, num_envs, ip, port,args, exec_path, download_link):
         ip = socket.gethostbyname(ip)
         self.num_envs = num_envs
         total_num_envs = num_envs
         self.conn = self.start_connection(ip, port)
-        self.env_init(task, num_envs, total_num_envs, args)
+        self.env_init(task, num_envs, total_num_envs, exec_path, download_link, args)
     
     def start_connection(self,ip, port):
         conn = socket.socket()
@@ -21,8 +31,9 @@ class EnvModule():
         print("CONNECTED TO ENV SERVER")
         return conn
         
-    def env_init(self, task, num_envs, total_num_envs, args):
-        payload = {"task": task,"NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args}
+    def env_init(self, task, num_envs, total_num_envs, exec_path, download_link,args):
+        payload = {"task": task,"exec_path":exec_path, "download_link":download_link, 
+            "NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args}
         packet = build_json_packet(STATUS.INIT, payload)
         self.conn.sendall(packet)
         
@@ -87,4 +98,7 @@ class EnvModule():
         self.conn.sendall(packet)
         
     def close(self):
+        packet = build_packet(STATUS.CLOS, [])
+        self.conn.sendall(packet)
+        time.sleep(1)
         self.conn.close()

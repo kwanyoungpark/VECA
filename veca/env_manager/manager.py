@@ -2,7 +2,7 @@ import numpy as np
 import socket
 import sys,json
 import time
-from veca.env_manager.env import UnityEnv
+from veca.env_manager.env import UnityInstance
 from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
 import base64 
 import os.path, gdown, zipfile, os
@@ -12,12 +12,14 @@ class TaskInfo():
         self.path = path
         self.download_link = download_link
 
+'''
 task_executable={
         "disktower" : TaskInfo("./veca/env_manager/bin/disktower/VECA_latest.exe", "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P"),
         "kicktheball" : TaskInfo("./veca/env_manager/bin/kicktheball/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ"),
         "mazenav" : TaskInfo("./veca/env_manager/bin/mazenav/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1nU512vgk7QytXQQtgNz9gZ5hHd4oR_wb"),
         "babyrun" : TaskInfo("./veca/env_manager/bin/babyrun/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0"),
 }
+'''
 
 def validate_ip_and_port(ip, port, num_envs):
     ip = socket.gethostbyname(ip)
@@ -50,16 +52,23 @@ class EnvManager():
     def serve(self):    
         _, _, packet = recv_json_packet(self.conn)
         self.task = packet["task"]
+
+        self.task_info = TaskInfo(packet["exec_path"], packet["download_link"])
+        print("download Link:", self.task_info.download_link)
+        print("exec_path:", self.task_info.path)
+
         self.TOTAL_NUM_ENVS = packet["TOTAL_NUM_ENVS"]
         self.NUM_ENVS = packet["NUM_ENVS"]
         self.args = packet["args"]
         #if self.TOTAL_NUM_ENVS % self.NUM_ENVS != 0:
         #    raise NotImplementedError('NOT SUPPORTED YET')
+        '''
         if self.task not in task_executable.keys():
             raise NotImplementedError('TASK NOT SUPPORTED YET')
-        self.exec_str = task_executable[self.task].path
+        '''
+        self.exec_str = self.task_info.path
         if not os.path.exists(self.exec_str):
-            url = task_executable[self.task].download_link
+            url = self.task_info.download_link
             exec_dir = os.path.dirname(self.exec_str)
             os.makedirs(exec_dir, exist_ok=True)
             output = os.path.join(exec_dir, self.task + ".zip")
@@ -75,7 +84,7 @@ class EnvManager():
             
         self.envs = []
         for i in range(self.NUM_ENVS):
-            self.envs.append(UnityEnv(self.ENVS_PER_ENV, self.localport + i, self.exec_str, self.args))
+            self.envs.append(UnityInstance(self.ENVS_PER_ENV, self.localport + i, self.exec_str, self.args))
         self.envs = list(reversed(self.envs))
         
         try:
@@ -100,6 +109,10 @@ class EnvManager():
                     
                 elif status_code == STATUS.RECO:
                     self.reset_connection()
+
+                elif status_code == STATUS.CLOS:
+                    self.close()
+                    break
                     
         except ConnectionError as ex:
             self.close()
@@ -166,8 +179,8 @@ class EnvManager():
             env.start_connection()
         
     def close(self):
-        self.conn.close()
         for env in self.envs:
             env.close()
         time.sleep(2)
+        self.conn.close()
         self.sock.close()
