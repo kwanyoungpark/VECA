@@ -27,8 +27,10 @@ def decode(byteArray, numtype):
         return struct.unpack('f' * size, byteArray)
     elif numtype == 'str':
         return byteArray.decode('ascii')
-    elif numtype == 'char':
+    elif numtype == 'char[]':
         return byteArray.decode('utf-16')
+    else:
+        raise NotImplementedError()
 
 def recvall(socket, length):
     remainder = length

@@ -19,7 +19,7 @@ class UnityInstance():
         hostName = socket.gethostbyname( '0.0.0.0' )
 
         exec_str = [self.exec_str] + self.args + ['-ip', 'localhost', '-port', str(self.port)]
-        print("CONNECTING TO "+ '-ip ' + '127.0.0.1' + ' -port ' + str(self.port))
+        print("Unity Instance Deployed at "+ '-ip ' + '127.0.0.1' + ' -port ' + str(self.port))
 
         self.sock.bind((hostName, self.port))
         self.sock.listen(1)

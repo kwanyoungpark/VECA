@@ -27,7 +27,6 @@ def import_module_from_path(path, name):
 def sanity_check(task_module):
     assert hasattr(task_module, "Environment")
     assert issubclass(task_module.Environment, EnvModule)
-    print(dir(task_module.Environment))
     assert hasattr(task_module.Environment, 'exec_path_win') and hasattr(task_module.Environment, 'download_link_win')
     assert hasattr(task_module.Environment, 'exec_path_linux') and hasattr(task_module.Environment, 'download_link_linux')
     return
@@ -53,9 +52,6 @@ def import_envs_from_dir(tasks_dir, task_name = None):
 def list_tasks(tasks_dir = TASKS_ROOTDIR_DEFAULT):
     env_paths = glob.glob(os.path.join(tasks_dir,'*',ENV_FILENAME_DEFAULT))
     # sanity check in here for each env_path will be good
-    for env_path in env_paths:
-        print(env_path)
-        print(os.path.split(env_path))
     out = [os.path.split(os.path.dirname(env_path))[-1] for env_path in env_paths]
     return out
 

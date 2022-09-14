@@ -6,10 +6,10 @@ if __name__=="__main__":
     
     print(veca.gym.list_tasks())                        # List available VECA tasks
 
-    num_envs = 4
+    num_envs = 1
 
     env = veca.gym.make(
-        task = "kicktheball",                               # VECA task name
+        task = "objectnav",                           # VECA task name
         num_envs = num_envs,                            # Number of parallel environment instances to execute
         args = ["-train", "-timeout", "-1"],            # VECA task additional arguments
         remote_env = False                              # Whether to use the Environment Orchestrator process at a remote server.

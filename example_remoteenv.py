@@ -6,7 +6,7 @@ if __name__=="__main__":
     
     print(veca.gym.list_tasks())                        # List available VECA tasks
 
-    num_envs = 4
+    num_envs = 1
 
     env = veca.gym.make(
         task = "mazenav",                               # VECA task name

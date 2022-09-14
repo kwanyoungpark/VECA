@@ -39,7 +39,7 @@ class EnvOrchestrator():
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         hostName = socket.gethostbyname( '0.0.0.0' )
         self.sock.bind((hostName, port))
-        print("Listening to ",hostName, " PORT ",port)
+        print("Env Orchestrator Listening to ",hostName, " PORT ",port)
         self.sock.listen(1) 
 
     def serve(self):    
@@ -50,8 +50,12 @@ class EnvOrchestrator():
         if "Windows" in cur_os:
             self.task_info = TaskInfo(packet["exec_path_win"], packet["download_link_win"])
         elif "Linux" in cur_os:
+            if packet["download_link_linux"] == "":
+                self.close()
+                raise NotImplementedError("Linux currently not supported")
             self.task_info = TaskInfo(packet["exec_path_linux"], packet["download_link_linux"])
         else:
+            self.close()
             raise NotImplementedError("OS not supported")
 
         print("download Link:", self.task_info.download_link)
