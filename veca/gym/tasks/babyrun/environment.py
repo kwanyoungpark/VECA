@@ -25,10 +25,10 @@ NUM_TIME = 1
 FRAME_SKIP = 1
 
 class Environment(EnvModule):
-    def __init__(self, task,num_envs,args,
+    def __init__(self, task,num_envs,args, seeds,
             remote_env, ip, port,
         ):
-        EnvModule.__init__(self,task, num_envs,args, 
+        EnvModule.__init__(self,task, num_envs,args,  seeds,
             remote_env, ip,port, 
             exec_path_win = "veca\\env_manager\\bin\\babyrun\\VECA-BS.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0",

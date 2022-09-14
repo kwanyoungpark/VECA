@@ -9,9 +9,9 @@ from veca.gym.core import EnvModule
 #import pickle
 
 class Environment(EnvModule):
-    def __init__(self, task, num_envs,args,
+    def __init__(self, task, num_envs,args, seeds,
             remote_env, ip, port):
-        EnvModule.__init__(self, task, num_envs, args,
+        EnvModule.__init__(self, task, num_envs, args, seeds,
             remote_env, ip, port,
             exec_path_win = "veca\\env_manager\\bin\\disktower_multiagent\\VECAUnityApp.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=1uoBXn8AvKcc1wQpFj3vI0qYssfSjYGEb",

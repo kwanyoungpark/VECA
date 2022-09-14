@@ -27,7 +27,7 @@ def validate_ip_and_port(ip, port, num_envs):
     return ip,port
 
 class EnvOrchestrator():
-    def __init__(self,  port, port_instance = 46490):
+    def __init__(self,  port:int, port_instance:int = 46490):
         self.port_instance = port_instance
         
         self.listen(port)
@@ -64,6 +64,7 @@ class EnvOrchestrator():
         self.TOTAL_NUM_ENVS = packet["TOTAL_NUM_ENVS"]
         self.NUM_ENVS = packet["NUM_ENVS"]
         self.args = packet["args"]
+        self.seeds = packet['seeds']
 
         #if self.TOTAL_NUM_ENVS % self.NUM_ENVS != 0:
         #    raise NotImplementedError('NOT SUPPORTED YET')
@@ -95,7 +96,9 @@ class EnvOrchestrator():
             
         self.envs = []
         for i in range(self.NUM_ENVS):
-            self.envs.append(UnityInstance(self.ENVS_PER_ENV, self.port_instance + i, self.exec_str, self.args))
+            if self.seeds is not None: args = self.args + ["-seed", str(self.seeds[i])]
+            else: args = self.args
+            self.envs.append(UnityInstance(self.ENVS_PER_ENV, self.port_instance + i, self.exec_str, args))
         self.envs = list(reversed(self.envs))
         
         try:

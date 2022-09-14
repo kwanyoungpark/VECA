@@ -25,7 +25,7 @@ class EnvModule():
     def download_link_linux(self):
         raise NotImplementedError
 
-    def __init__(self, task, num_envs, args, 
+    def __init__(self, task, num_envs, args, seeds,
             remote_env, ip, port,
             exec_path_win, download_link_win,
             exec_path_linux, download_link_linux,
@@ -41,7 +41,7 @@ class EnvModule():
         self.num_envs = num_envs
         total_num_envs = num_envs
         self.conn = self.start_connection(ip, port)
-        self.env_init(task, num_envs, total_num_envs, args,
+        self.env_init(task, num_envs, total_num_envs, args, seeds,
             exec_path_win, download_link_win,
             exec_path_linux, download_link_linux,
         )
@@ -55,11 +55,11 @@ class EnvModule():
         print("CONNECTED TO ENV SERVER")
         return conn
         
-    def env_init(self, task, num_envs, total_num_envs, args,
+    def env_init(self, task, num_envs, total_num_envs, args, seeds,
             exec_path_win, download_link_win,
             exec_path_linux, download_link_linux,
         ):
-        payload = {"task": task, "NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args,
+        payload = {"task": task, "NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args, "seeds": seeds,
             "exec_path_win":exec_path_win, "download_link_win":download_link_win, 
             "exec_path_linux":exec_path_linux, "download_link_linux":download_link_linux, 
         }

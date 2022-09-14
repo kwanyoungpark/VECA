@@ -19,10 +19,10 @@ class Environment(EnvModule):
             ):
         EnvModule.__init__(self, task, num_envs, args, seeds,
             remote_env, ip, port,
-            exec_path_win = "veca\\env_manager\\bin\\kicktheball\\VECA-BS.exe",
-            download_link_win = "https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ",
-            exec_path_linux = "./veca/env_manager/bin/kicktheball/kicktheball.x86_64",
-            download_link_linux = "https://drive.google.com/uc?export=download&id=1pycqQ7z6y6YkTpRYI8B6g2pKBtVHdgk3"
+            exec_path_win = "veca\\env_manager\\bin\\kicktheballrandomscene\\VECAUnityApp.exe",
+            download_link_win = "https://drive.google.com/uc?export=download&id=1AoS5QsltcZmzLBxuIdKVuqQ4RpfI6FuE",
+            exec_path_linux = "./veca/env_manager/bin/kicktheballrandomscene/kicktheballrandomscene.x86_64",
+            download_link_linux = "https://drive.google.com/uc?export=download&id=1wkeyp9krs0Y6BM9E7bxzjWMR0vm9cwOJ"
             )
         self.num_envs = num_envs
     

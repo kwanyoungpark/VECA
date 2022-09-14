@@ -17,10 +17,10 @@ def wav2freq(wav):
     return wav
 
 class Environment(EnvModule):
-    def __init__(self, task, num_envs,  args,
+    def __init__(self, task, num_envs,  args, seeds,
             remote_env, ip, port
         ):
-        EnvModule.__init__(self,task, num_envs, args, 
+        EnvModule.__init__(self,task, num_envs, args, seeds,
             remote_env, ip, port,
             exec_path_win = "veca\\env_manager\\bin\\objectnav\\VECAUnityApp.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=15sMnrX4WLib4EZv_1QJAeQorERc6853j",
