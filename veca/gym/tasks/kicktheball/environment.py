@@ -1,5 +1,5 @@
 import numpy as np
-from veca.gym.core.environment import EnvModule
+from veca.gym.core import EnvModule
 
 IMG_H, IMG_W = 84, 84
 
@@ -16,8 +16,11 @@ def wav2freq(wav):
 class Environment(EnvModule):
     def __init__(self, task, num_envs, ip,port,args):
         EnvModule.__init__(self, task, num_envs, ip,port,args,
-            exec_path = "./veca/env_manager/bin/kicktheball/VECA-BS.exe",
-            download_link = "https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ")
+            exec_path_win = "veca\\env_manager\\bin\\kicktheball\\VECA-BS.exe",
+            download_link_win = "https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ",
+            exec_path_linux = "./veca/env_manager/bin/kicktheball/kicktheball.x86_64",
+            download_link_linux = "https://drive.google.com/uc?export=download&id=1pycqQ7z6y6YkTpRYI8B6g2pKBtVHdgk3"
+            )
         self.num_envs = num_envs
     
     def step(self, action):

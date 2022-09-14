@@ -6,7 +6,7 @@ import time
 import random
 #from PIL import Image
 #from moviepy.editor import *
-from veca.gym.core.environment import EnvModule
+from veca.gym.core import EnvModule
 import pickle
 
 class Environment(EnvModule):
@@ -21,8 +21,11 @@ class Environment(EnvModule):
     '''
     def __init__(self, task, num_envs, ip, port, args):
         EnvModule.__init__(self, task, num_envs, ip, port, args,
-            exec_path = "./veca/env_manager/bin/disktower/VECA_latest.exe",
-            download_link = "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P")
+            exec_path_win = "veca\\env_manager\\bin\\disktower\\VECA_latest.exe",
+            download_link_win = "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P",
+            exec_path_linux = "./veca/env_manager/bin/disktower/disktower.x86_64",
+            download_link_linux = "https://drive.google.com/uc?export=download&id=1xJ1jjqX9MkoiM0o3_00_LNlFpzyIzjXg" 
+            )
         self.name = 'DiskTower'
         self.SIM = 'VECA'
         self.mode = 'CONT'

@@ -17,16 +17,15 @@ class UnityInstance():
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         hostName = socket.gethostbyname( '0.0.0.0' )
-        #print(hostName)
+
         exec_str = [self.exec_str] + self.args + ['-ip', 'localhost', '-port', str(self.port)]
         print("CONNECTING TO "+ '-ip ' + '127.0.0.1' + ' -port ' + str(self.port))
-        #self.sock.bind(('0.0.0.0', self.port))
+
         self.sock.bind((hostName, self.port))
         self.sock.listen(1)
         print(exec_str)
         self.proc = subprocess.Popen(exec_str)
-        #os.system(self.exec_str + ' -ip ' + '127.0.0.1' + ' -port ' + str(self.port))
-        #print(self.exec_str + ' -ip ' + '127.0.0.1' + ' -port ' + str(self.port))
+        
         (self.conn, self.addr) = self.sock.accept()
         print("CONNECTED")
         self.conn.sendall(self.NUM_ENVS.to_bytes(4, 'little'))

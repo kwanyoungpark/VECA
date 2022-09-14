@@ -24,7 +24,12 @@ FRAME_SKIP = 1
 
 class Environment(EnvModule):
     def __init__(self,task, num_envs,ip,port,  args):
-        EnvModule.__init__(self, task, num_envs,ip,port, args)
+        EnvModule.__init__(self, task, num_envs,ip,port, args,
+            exec_path_win = "veca\\env_manager\\bin\\mazenav\\VECAUnityApp.exe",
+            download_link_win = "https://drive.google.com/uc?export=download&id=17jIHlL7NMIAW_32ZzgZkNr0DGugkY3o8",
+            exec_path_linux = "./veca/env_manager/bin/mazenav/mazenav.x86_64",
+            download_link_linux = "https://drive.google.com/uc?export=download&id=1Adm271jFNwIOfDUtoMzy1Dq7bcZzQ15v" 
+            )
         self.name = 'MazeNav'
         self.SIM = 'VECA'
         self.mode = 'CONT'
@@ -34,9 +39,7 @@ class Environment(EnvModule):
             'image': (6, 84, 84),
             'obj': (NUM_OBJS)
         }
-        self.exec_path = "veca/env_manager/bin/mazenav/VECA-BS.exe"
-        self.download_link = "https://drive.google.com/uc?export=download&id=1nU512vgk7QytXQQtgNz9gZ5hHd4oR_wb"
-        
+
         self.VEC_OBJ = VEC_OBJ
         self.NUM_OBJS = NUM_OBJS
         #self.action_length = self.action_space - 1

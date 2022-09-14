@@ -28,7 +28,8 @@ def sanity_check(task_module):
     assert hasattr(task_module, "Environment")
     assert issubclass(task_module.Environment, EnvModule)
     print(dir(task_module.Environment))
-    assert hasattr(task_module.Environment, 'exec_path') and hasattr(task_module.Environment, 'download_link')
+    assert hasattr(task_module.Environment, 'exec_path_win') and hasattr(task_module.Environment, 'download_link_win')
+    assert hasattr(task_module.Environment, 'exec_path_linux') and hasattr(task_module.Environment, 'download_link_linux')
     return
 
 def import_envs_from_dir(tasks_dir, task_name = None):

@@ -12,14 +12,7 @@ class TaskInfo():
         self.path = path
         self.download_link = download_link
 
-'''
-task_executable={
-        "disktower" : TaskInfo("./veca/env_manager/bin/disktower/VECA_latest.exe", "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P"),
-        "kicktheball" : TaskInfo("./veca/env_manager/bin/kicktheball/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ"),
-        "mazenav" : TaskInfo("./veca/env_manager/bin/mazenav/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1nU512vgk7QytXQQtgNz9gZ5hHd4oR_wb"),
-        "babyrun" : TaskInfo("./veca/env_manager/bin/babyrun/VECA-BS.exe","https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0"),
-}
-'''
+import platform 
 
 def validate_ip_and_port(ip, port, num_envs):
     ip = socket.gethostbyname(ip)
@@ -53,13 +46,21 @@ class EnvManager():
         _, _, packet = recv_json_packet(self.conn)
         self.task = packet["task"]
 
-        self.task_info = TaskInfo(packet["exec_path"], packet["download_link"])
+        cur_os = platform.system() 
+        if "Windows" in cur_os:
+            self.task_info = TaskInfo(packet["exec_path_win"], packet["download_link_win"])
+        elif "Linux" in cur_os:
+            self.task_info = TaskInfo(packet["exec_path_linux"], packet["download_link_linux"])
+        else:
+            raise NotImplementedError("OS not supported")
+
         print("download Link:", self.task_info.download_link)
         print("exec_path:", self.task_info.path)
 
         self.TOTAL_NUM_ENVS = packet["TOTAL_NUM_ENVS"]
         self.NUM_ENVS = packet["NUM_ENVS"]
         self.args = packet["args"]
+
         #if self.TOTAL_NUM_ENVS % self.NUM_ENVS != 0:
         #    raise NotImplementedError('NOT SUPPORTED YET')
         '''

@@ -8,19 +8,33 @@ import time
 class EnvModule():
 
     @property
-    def exec_path(self):
+    def exec_path_win(self):
         raise NotImplementedError
 
     @property
-    def download_link(self):
+    def download_link_win(self):
+        raise NotImplementedError
+        
+    @property
+    def exec_path_linux(self):
         raise NotImplementedError
 
-    def __init__(self, task, num_envs, ip, port,args, exec_path, download_link):
+    @property
+    def download_link_linux(self):
+        raise NotImplementedError
+
+    def __init__(self, task, num_envs, ip, port,args, 
+            exec_path_win, download_link_win,
+            exec_path_linux, download_link_linux,
+        ):
         ip = socket.gethostbyname(ip)
         self.num_envs = num_envs
         total_num_envs = num_envs
         self.conn = self.start_connection(ip, port)
-        self.env_init(task, num_envs, total_num_envs, exec_path, download_link, args)
+        self.env_init(task, num_envs, total_num_envs, args,
+            exec_path_win, download_link_win,
+            exec_path_linux, download_link_linux,
+        )
     
     def start_connection(self,ip, port):
         conn = socket.socket()
@@ -31,9 +45,14 @@ class EnvModule():
         print("CONNECTED TO ENV SERVER")
         return conn
         
-    def env_init(self, task, num_envs, total_num_envs, exec_path, download_link,args):
-        payload = {"task": task,"exec_path":exec_path, "download_link":download_link, 
-            "NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args}
+    def env_init(self, task, num_envs, total_num_envs, args,
+            exec_path_win, download_link_win,
+            exec_path_linux, download_link_linux,
+        ):
+        payload = {"task": task, "NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args,
+            "exec_path_win":exec_path_win, "download_link_win":download_link_win, 
+            "exec_path_linux":exec_path_linux, "download_link_linux":download_link_linux, 
+        }
         packet = build_json_packet(STATUS.INIT, payload)
         self.conn.sendall(packet)
         
