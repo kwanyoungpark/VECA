@@ -23,9 +23,10 @@ git clone https://github.com/GGOSinon/VECA.git
 ```
 
 2. If you want to execute the environment on the same machine with your training algorithm, (Local execution)
-'''
+
+```
 python example.py
-'''
+```
 
 3. If you want to execute the environment on the different machine (Remote environment execution)
 
