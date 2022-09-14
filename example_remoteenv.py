@@ -1,5 +1,6 @@
 import numpy as np
 import veca.gym
+import random
 
 
 if __name__=="__main__":
@@ -9,11 +10,12 @@ if __name__=="__main__":
     num_envs = 1
 
     env = veca.gym.make(
-        task = "mazenav",                               # VECA task name
-        num_envs = num_envs,                            # Number of parallel environment instances to execute
-        args = ["-train", "-timeout", "-1"],            # VECA task additional arguments
-        remote_env = True,                              # Whether to use the Environment Orchestrator process at a remote server. If True, the orchestrator's ip and port should be given.               
-        ip = "127.0.0.1", port= 8872,                   # ip and port of remote Envionment Orchestrator master
+        task = "kicktheballrandomscene",                    # VECA task name
+        num_envs = num_envs,                                # Number of parallel environment instances to execute
+        args = ["-train", "-timeout", "-1"],                # VECA task additional arguments
+        seeds = random.sample(range(0, 2000), num_envs),    # seeds per env instances
+        remote_env = True,                                  # Whether to use the Environment Orchestrator process at a remote server. If True, the orchestrator's ip and port should be given.               
+        ip = "127.0.0.1", port= 8872,                       # ip and port of remote Envionment Orchestrator master
         )
 
     action_dim = env.action_space

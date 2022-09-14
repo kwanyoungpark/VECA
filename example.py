@@ -9,10 +9,10 @@ if __name__=="__main__":
     num_envs = 4
 
     env = veca.gym.make(
-        task = "kicktheballrandomscene",                                 # VECA task name
+        task = "kicktheballrandomscene",                    # VECA task name
         num_envs = num_envs,                                # Number of parallel environment instances to execute
         args = ["-train", "-timeout", "-1"],                # VECA task additional arguments,
-        seeds = [1541,222,4,7],        #random.sample(range(0, 2000), num_envs),    # seeds per env instances
+        seeds = random.sample(range(0, 2000), num_envs),    # seeds per env instances
         remote_env = False                                  # Whether to use the Environment Orchestrator process at a remote server.
         )
 
