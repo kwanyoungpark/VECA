@@ -19,8 +19,10 @@ class Environment(EnvModule):
     done : (NUM_ENVS)            np.bool        True if the episode is over
     reward : (NUM_ENVS)          np.float32     0~5, calculated as number of successfully stacked disks
     '''
-    def __init__(self, task, num_envs, ip, port, args):
-        EnvModule.__init__(self, task, num_envs, ip, port, args,
+    def __init__(self, task, num_envs, args, 
+            remote_env, ip, port):
+        EnvModule.__init__(self, task, num_envs, args,
+            remote_env, ip, port,
             exec_path_win = "veca\\env_manager\\bin\\disktower\\VECA_latest.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=1jf4aWG9BR20HVj4sNArTEzqbK6SpSS6P",
             exec_path_linux = "./veca/env_manager/bin/disktower/disktower.x86_64",

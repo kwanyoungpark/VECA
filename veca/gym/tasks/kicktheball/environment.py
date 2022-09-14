@@ -14,8 +14,11 @@ def wav2freq(wav):
     return wav
 
 class Environment(EnvModule):
-    def __init__(self, task, num_envs, ip,port,args):
-        EnvModule.__init__(self, task, num_envs, ip,port,args,
+    def __init__(self, task, num_envs, args,
+            remote_env, ip, port
+            ):
+        EnvModule.__init__(self, task, num_envs, args,
+            remote_env, ip, port,
             exec_path_win = "veca\\env_manager\\bin\\kicktheball\\VECA-BS.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ",
             exec_path_linux = "./veca/env_manager/bin/kicktheball/kicktheball.x86_64",

@@ -23,8 +23,11 @@ NUM_TIME = 1
 FRAME_SKIP = 1
 
 class Environment(EnvModule):
-    def __init__(self,task, num_envs,ip,port,  args):
-        EnvModule.__init__(self, task, num_envs,ip,port, args,
+    def __init__(self,task, num_envs, args,
+            remote_env, ip, port
+            ):
+        EnvModule.__init__(self, task, num_envs,args,
+            remote_env, ip, port,
             exec_path_win = "veca\\env_manager\\bin\\mazenav\\VECAUnityApp.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=17jIHlL7NMIAW_32ZzgZkNr0DGugkY3o8",
             exec_path_linux = "./veca/env_manager/bin/mazenav/mazenav.x86_64",
@@ -126,5 +129,5 @@ class Environment(EnvModule):
         for i in range(self.num_envs):
             if self.stepnum[i] == 256:
                 AR[i][0] = 1
-        action[:,-1] = AR #np.concatenate([action, AR], axis = 1)
+        action[:,:-1] = AR #np.concatenate([action, AR], axis = 1)
         super().send_action(action)

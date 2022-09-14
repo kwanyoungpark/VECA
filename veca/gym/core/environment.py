@@ -4,6 +4,8 @@ import struct
 from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
 import json, base64
 import time
+from multiprocessing import Process
+from veca.env_manager import EnvOrchestrator
 
 class EnvModule():
 
@@ -23,10 +25,18 @@ class EnvModule():
     def download_link_linux(self):
         raise NotImplementedError
 
-    def __init__(self, task, num_envs, ip, port,args, 
+    def __init__(self, task, num_envs, args, 
+            remote_env, ip, port,
             exec_path_win, download_link_win,
             exec_path_linux, download_link_linux,
         ):
+        self.remote_env = remote_env
+        if not self.remote_env:
+            self.env_orchestrator = Process(target=EnvOrchestrator, kwargs={'port': port, 'port_instance' : 46490})
+            self.env_orchestrator.start()
+            time.sleep(5)
+            ip = 'localhost'
+
         ip = socket.gethostbyname(ip)
         self.num_envs = num_envs
         total_num_envs = num_envs
@@ -121,3 +131,7 @@ class EnvModule():
         self.conn.sendall(packet)
         time.sleep(1)
         self.conn.close()
+        time.sleep(3)
+
+        if not self.remote_env:
+            self.env_orchestrator.join()

@@ -59,7 +59,7 @@ def list_tasks(tasks_dir = TASKS_ROOTDIR_DEFAULT):
     out = [os.path.split(os.path.dirname(env_path))[-1] for env_path in env_paths]
     return out
 
-def make(task, num_envs, ip, port, args):
+def make(task, num_envs, args, remote_env = False, ip = None, port = 46489):
     tasks_list = list_tasks()
     if task not in tasks_list:
         raise ValueError("Task [" + task + "] not supported.\n"+
@@ -67,9 +67,13 @@ def make(task, num_envs, ip, port, args):
         )
     env = import_envs_from_dir(tasks_dir = TASKS_ROOTDIR_DEFAULT, task_name = task)[task]
     print("Imported " ,task, "module")
+
+    if remote_env: assert ip is not None, "If using remote env orchestrator, its IP and port should be given"
+
     return env(
             task = task,
             num_envs = num_envs, 
+            args = args,
+            remote_env = remote_env,
             ip = ip, port = port, 
-            args = args
             )
