@@ -54,7 +54,6 @@ class EnvOrchestrator():
                 self.close()
                 raise NotImplementedError("Linux currently not supported")
             self.task_info = TaskInfo(packet["exec_path_linux"], packet["download_link_linux"])
-            os.chmod(packet["exec_path_linux"], os.stat(packet["exec_path_linux"]).st_mode | stat.S_IEXEC)
         else:
             self.close()
             raise NotImplementedError("OS not supported")
@@ -87,6 +86,7 @@ class EnvOrchestrator():
                     print(exec_dir)
                 if not os.path.exists(self.exec_str):
                     raise ValueError('CANNOT DOWNLOAD TASK EXECUTABLE.')
+                os.chmod(packet["exec_path_linux"], os.stat(packet["exec_path_linux"]).st_mode | stat.S_IEXEC)
         except ex:
             self.close()
             print(ex)
