@@ -5,7 +5,7 @@ import time
 from veca.env_manager.instance import UnityInstance
 from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
 import base64 
-import os.path, gdown, zipfile, os
+import os.path, gdown, zipfile, os, stat
 
 class TaskInfo():
     def __init__(self, path, download_link):
@@ -54,6 +54,7 @@ class EnvOrchestrator():
                 self.close()
                 raise NotImplementedError("Linux currently not supported")
             self.task_info = TaskInfo(packet["exec_path_linux"], packet["download_link_linux"])
+            os.chmod(packet["exec_path_linux"], os.stat(packet["exec_path_linux"]).st_mode | stat.S_IEXEC)
         else:
             self.close()
             raise NotImplementedError("OS not supported")
