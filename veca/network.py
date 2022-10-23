@@ -66,18 +66,24 @@ def packet_format(status, outputs):
     outputs.insert(0,status.to_bytes(1,'little'))
     return outputs
 
-def build_json_packet(status, payload):
+def build_json_packet(status, payload, metadata = None, use_metadata = False):
     assert isinstance(payload,dict)
+    assert not (use_metadata and (metadata is None))
     payload_json = json.dumps(payload).encode('utf-8')
-    packet = build_packet(status, [len(payload_json).to_bytes(4, 'little'),payload_json])
-    return packet
+    if use_metadata:
+        metadata_json = json.dumps(metadata).encode('utf-8')
+        return build_packet(status, [len(metadata_json).to_bytes(4, 'little'), len(payload_json).to_bytes(4, 'little'),metadata_json, payload_json])
+    else: return build_packet(status, [len(payload_json).to_bytes(4, 'little'),payload_json])
 
-def recv_json_packet(conn):
-    status_code = decode(recvall(conn, 1), 'uint8')
-    length = decode(recvall(conn, 4), 'int')
-    payload_json = decode(recvall(conn, length), 'str') 
+def recv_json_packet(conn, use_metadata = False):
+    status_code = decode(recvall(conn, 1), 'uint8'); print("Status", status_code)
+    if use_metadata: metadata_length = decode(recvall(conn, 4), 'int'); print("MDL:", metadata_length)
+    length = decode(recvall(conn, 4), 'int'); print("Len:", length)
+    if use_metadata: payload_metadata = decode(recvall(conn, metadata_length), 'str') ; print("MD", payload_metadata)
+    payload_json = decode(recvall(conn, length), 'str') ; print("JSON", payload_json)
     payload = json.loads(payload_json)
-    return status_code, length, payload
+    if use_metadata: return status_code, metadata_length, length, payload_metadata, payload
+    else: return status_code, length, payload
 
 # STATUS CODE
 class STATUS:

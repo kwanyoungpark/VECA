@@ -2,7 +2,8 @@ import numpy as np
 import socket
 import subprocess
 import time
-from veca.network import decode, recvall, types, typesz
+from veca.network import decode, recvall, types, typesz, build_json_packet, STATUS, recv_json_packet
+import struct, base64
 
 class UnityInstance():
     def __init__(self, NUM_ENVS, port, exec_str, args):
@@ -36,7 +37,20 @@ class UnityInstance():
         print(self.NUM_ENVS.to_bytes(4, 'little'))
         print("GO")
 
+    def _echo_test(self):
+        data = {"test1":base64.b64encode(bytes([0,0,1,0])).decode("ascii"), 
+            "test2":base64.b64encode(struct.pack('%sf' % 5,*[0.0,1.0,2.0,3.0,-4.0])).decode("ascii"), 
+            "test3":base64.b64encode(np.ones((2,3,4,5)).tobytes()).decode("ascii")}
+        metadata = {"test1":"float", "test2":"float", "test3":"np.float", "test4":"np.float32"}
+        packet = build_json_packet(STATUS.REST, data, metadata, use_metadata= True)
+        print("Send:", packet)
+        self.conn.sendall(packet)
+        output = recv_json_packet(self.conn, use_metadata = True)
+        print("RECV:",output)
+
     def send_action(self, action):
+        self._echo_test()
+
         self.conn.sendall(b'STEP')
         self.conn.sendall(action)
         #print('STEP', action)
@@ -82,18 +96,25 @@ class UnityInstance():
         return obsAgent, obsEnv
     
     def reset(self, mask = None):
+        self._echo_test()
+
+
         if mask is None:
             mask = np.ones(self.NUM_ENVS, dtype = np.uint8)
         self.conn.sendall(b'REST')
         self.conn.sendall(mask)    
 
     def reset_connection(self):
+        self._echo_test()
+
         if self.proc.poll() == None:
             print('Killed: Give more time to env?')
             self.proc.kill()
         self.start_connection()
         
     def close(self):
+        self._echo_test()
+
         self.conn.sendall(b'CLOS')
         self.conn.close()
         self.sock.close()
