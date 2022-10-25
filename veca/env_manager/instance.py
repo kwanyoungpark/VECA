@@ -1,9 +1,11 @@
+from re import A
 import numpy as np
 import socket
 import subprocess
 import time
 from veca.network import decode, recvall, types, typesz, build_json_packet, STATUS, recv_json_packet
 import struct, base64
+from typing import Tuple
 
 class UnityInstance():
     def __init__(self, NUM_ENVS, port, exec_str, args):
@@ -38,20 +40,61 @@ class UnityInstance():
         print("GO")
 
     def _echo_test(self):
+        '''
         data = {"test1":base64.b64encode(bytes([0,0,1,0])).decode("ascii"), 
             "test2":base64.b64encode(struct.pack('%sf' % 5,*[0.0,1.0,2.0,3.0,-4.0])).decode("ascii"), 
             "test3":base64.b64encode(np.ones((2,3,4,5)).tobytes()).decode("ascii")}
         metadata = {"test1":"float", "test2":"float", "test3":"np.float", "test4":"np.float32"}
+        '''
+        data = {"test1":[0,0,1,0], "test2":[0.0,1.0,2.0,3.0,-4.0], "test3":np.ones((2,3,4,5)), "test4":"HelloWorld!", "test5":1, "test6":6.0}
+        metadata, data = self._protocol_encode(data)
         packet = build_json_packet(STATUS.REST, data, metadata, use_metadata= True)
         print("Send:", packet)
         self.conn.sendall(packet)
         output = recv_json_packet(self.conn, use_metadata = True)
         print("RECV:",output)
 
+    def request(self, status, data:dict):
+        metadata, data = self._protocol_encode(data)
+        packet = build_json_packet(STATUS.REST, data, metadata, use_metadata= True)
+        print("Send:", packet)
+        self.conn.sendall(packet)
+
+    def _protocol_encode(self,data:dict):
+        output = {}
+        metadata = {}
+        def _encode(x) -> Tuple[str,str]:
+            info = str(type(x))
+            base64_ascii = lambda t:  base64.b64encode(t).decode("ascii")
+            if isinstance(x,np.ndarray):
+                return "/".join([str(type(x)), str(x.dtype), str(x.shape)]), base64_ascii(x.tobytes())
+            elif isinstance(x, list):
+                y = np.array(x)
+                return "/".join([str(type(y)), str(y.dtype), str(y.shape)]), base64_ascii(y.tobytes())
+            elif isinstance(x, str):
+                return info, x
+            elif isinstance(x, int):
+                return info, base64_ascii(np.array([x]))
+            elif isinstance(x, float):
+                return info, base64_ascii(np.array([x]))
+            elif isinstance(x, bytes):
+                return info, base64_ascii(x)
+            else:
+                print(type(x))
+                print(x.dtype)
+                raise NotImplementedError()
+        for key, value in data.items():
+            type_enc, value_enc = _encode(value)
+            output[key] = value_enc
+            metadata[key] = type_enc
+
+        return metadata, output
+
     def send_action(self, action):
         self._echo_test()
 
         self.conn.sendall(b'STEP')
+        self.request(STATUS.STEP, {"action":action})
         self.conn.sendall(action)
         #print('STEP', action)
     
@@ -98,10 +141,10 @@ class UnityInstance():
     def reset(self, mask = None):
         self._echo_test()
 
-
         if mask is None:
             mask = np.ones(self.NUM_ENVS, dtype = np.uint8)
         self.conn.sendall(b'REST')
+        self.request(STATUS.REST, {"mask":mask})
         self.conn.sendall(mask)    
 
     def reset_connection(self):
@@ -116,5 +159,6 @@ class UnityInstance():
         self._echo_test()
 
         self.conn.sendall(b'CLOS')
+        self.request(STATUS.CLOS, {})
         self.conn.close()
         self.sock.close()
