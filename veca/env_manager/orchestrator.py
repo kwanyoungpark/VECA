@@ -173,6 +173,14 @@ class EnvOrchestrator():
                     value = value + [base64.b64encode(obsEnv[i][key][0]).decode('ascii'),]
                 resEnv[key] = value
             payload[types[type_num]]["resEnv"] = resEnv
+        
+        for i in range(self.NUM_ENVS):
+            status, metadata, data = self.envs[i].response()
+            print(f"Get Observation of {i}-th Env:------------------------------------")
+            print("Status:", status)
+            print("Metadata:", metadata)
+            print("payload:", data)
+            print("------------------------------------")
             
         packet = build_json_packet(STATUS.STEP, payload)
         '''

@@ -60,6 +60,10 @@ class UnityInstance():
         print("Send:", packet)
         self.conn.sendall(packet)
 
+    def response(self):
+        status, _, _, metadata, data = recv_json_packet(self.conn, use_metadata = True)
+        return status, metadata, data
+
     def _protocol_encode(self,data:dict):
         output = {}
         metadata = {}
@@ -93,8 +97,8 @@ class UnityInstance():
     def send_action(self, action):
         self._echo_test()
 
-        self.conn.sendall(b'STEP')
         self.request(STATUS.STEP, {"action":action})
+        self.conn.sendall(b'STEP')
         self.conn.sendall(action)
         #print('STEP', action)
     
@@ -135,16 +139,15 @@ class UnityInstance():
                 else:
                     value.append(None)
             obsEnv[key] = value
-
         return obsAgent, obsEnv
     
     def reset(self, mask = None):
         self._echo_test()
 
+        self.request(STATUS.REST, {"mask":mask})
         if mask is None:
             mask = np.ones(self.NUM_ENVS, dtype = np.uint8)
         self.conn.sendall(b'REST')
-        self.request(STATUS.REST, {"mask":mask})
         self.conn.sendall(mask)    
 
     def reset_connection(self):
@@ -158,7 +161,7 @@ class UnityInstance():
     def close(self):
         self._echo_test()
 
-        self.conn.sendall(b'CLOS')
         self.request(STATUS.CLOS, {})
+        self.conn.sendall(b'CLOS')
         self.conn.close()
         self.sock.close()
