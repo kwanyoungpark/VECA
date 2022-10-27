@@ -56,13 +56,13 @@ class UnityInstance():
 
     def request(self, status, data:dict):
         metadata, data = self._protocol_encode(data)
-        packet = build_json_packet(STATUS.REST, data, metadata, use_metadata= True)
+        packet = build_json_packet(status, data, metadata, use_metadata= True)
         print("Send:", packet)
         self.conn.sendall(packet)
 
     def response(self):
         status, _, _, metadata, data = recv_json_packet(self.conn, use_metadata = True)
-        return status, metadata, data
+        return status, metadata, self._protocol_decode(metadata,data)
 
     def _protocol_encode(self,data:dict):
         output = {}
@@ -93,6 +93,21 @@ class UnityInstance():
             metadata[key] = type_enc
 
         return metadata, output
+    def _protocol_decode(self, metadata:dict, data:dict):
+        output = {}
+        def _decode(x, info) : 
+            info = info.split("/")
+            typeinfo, shape = info[0], tuple(int(x) for x in info[1].replace("(","").replace(",)","").replace(")","").split(","))
+            if "Byte[]" in typeinfo:
+                return np.frombuffer(base64.b64decode(x[0].encode('ascii')), np.uint8).reshape(shape)
+            elif "Int16[]" in typeinfo:
+                return np.array(x).reshape(shape)
+            elif "Single[]" in typeinfo:
+                return np.array(x).reshape(shape)
+            else:
+                print(typeinfo)
+                raise NotImplementedError()
+        return {key: _decode(value,metadata[key]) for key,value in data.items()}
 
     def send_action(self, action):
         self._echo_test()

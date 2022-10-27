@@ -79,7 +79,7 @@ def recv_json_packet(conn, use_metadata = False):
     status_code = decode(recvall(conn, 1), 'uint8'); print("Status", status_code)
     if use_metadata: metadata_length = decode(recvall(conn, 4), 'int'); print("MDL:", metadata_length)
     length = decode(recvall(conn, 4), 'int'); print("Len:", length)
-    if use_metadata: payload_metadata = decode(recvall(conn, metadata_length), 'str') ; print("MD", payload_metadata)
+    if use_metadata: payload_metadata = json.loads(decode(recvall(conn, metadata_length), 'str')) ; print("MD", payload_metadata)
     payload_json = decode(recvall(conn, length), 'str') ; print("JSON", payload_json)
     payload = json.loads(payload_json)
     if use_metadata: return status_code, metadata_length, length, payload_metadata, payload
