@@ -28,13 +28,11 @@ class UnityInstance():
         
         (self.conn, self.addr) = self.sock.accept()
         print("CONNECTED")
-        self.conn.sendall(self.NUM_ENVS.to_bytes(4, 'little'))
-        self.AGENTS_PER_ENV = decode(recvall(self.conn, 4), 'int')
+        request(self.conn, STATUS.INIT, {"num_envs":self.NUM_ENVS})
+        status, _, data = response(self.conn)
+        self.AGENTS_PER_ENV = data["agents_per_env"][0]
         self.NUM_AGENTS = self.AGENTS_PER_ENV * self.NUM_ENVS
-        self.action_space = decode(recvall(self.conn, 4), 'int')
-                
-        print(self.NUM_ENVS.to_bytes(4, 'little'))
-        print("GO")
+        self.action_space = data["action_length"][0]
 
     def _echo_test(self):
         request(self.conn, STATUS.REST, 
@@ -50,50 +48,8 @@ class UnityInstance():
         self._echo_test()
 
         request(self.conn, STATUS.STEP, {"action":action})
-        #self.conn.sendall(b'STEP')
-        #self.conn.sendall(action)
-        #print('STEP', action)
     
     def get_observation(self, type_num):
-        '''
-        obsAgent = {}
-        data_type = types[type_num]
-        N = decode(recvall(self.conn, 4), 'int')
-        #print('N', N)
-        for _ in range(N):
-            keyL = decode(recvall(self.conn, 4), 'int')
-            #print('keyL', keyL)
-            key = decode(recvall(self.conn, keyL), 'str')
-            #print('key', key)
-            value = []
-            for i in range(self.NUM_ENVS):
-                for j in range(self.AGENTS_PER_ENV):
-                    valueL = decode(recvall(self.conn, 4), 'int')
-                    #print(valueL
-                    if valueL > 0:
-                        value.append(recvall(self.conn, valueL * typesz[type_num]))
-                    else:
-                        value.append(None)
-            obsAgent[key] = value
-        obsEnv = {}
-        N = decode(recvall(self.conn, 4), 'int')
-        #print('N', N)
-        for _ in range(N):
-            keyL = decode(recvall(self.conn, 4), 'int')
-            #print('keyL', keyL)
-            key = decode(recvall(self.conn, keyL), 'str')
-            #print('key', key)
-            value = []
-            for i in range(self.NUM_ENVS):
-                valueL = decode(recvall(self.conn, 4), 'int')
-                #print(valueL)
-                if valueL > 0:
-                    value.append(recvall(self.conn, valueL * typesz[type_num]))
-                else:
-                    value.append(None)
-            obsEnv[key] = value
-        return obsAgent, obsEnv
-        '''
         return None
     
     def reset(self, mask = None):
@@ -102,8 +58,6 @@ class UnityInstance():
         if mask is None:
             mask = np.ones(self.NUM_ENVS, dtype = np.uint8)
         request(self.conn, STATUS.REST, {"mask":mask})
-        #self.conn.sendall(b'REST')
-        #self.conn.sendall(mask)    
 
     def reset_connection(self):
         self._echo_test()
@@ -117,6 +71,5 @@ class UnityInstance():
         self._echo_test()
 
         request(self.conn, STATUS.CLOS, {})
-        #self.conn.sendall(b'CLOS')
         self.conn.close()
         self.sock.close()

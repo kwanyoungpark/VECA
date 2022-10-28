@@ -146,36 +146,6 @@ class EnvOrchestrator():
         self.get_observation()
     
     def get_observation(self):
-        '''
-        payload = {}
-
-        for type_num in range(5):
-            payload[types[type_num]] = {}
-            
-            obsAgent, obsEnv, resAgent, resEnv = [], [], {}, {}
-            for i in range(self.NUM_ENVS):
-                obAgent, obEnv = self.envs[i].get_observation(type_num)
-                obsAgent.append(obAgent)
-                obsEnv.append(obEnv)
-
-            for key in obsAgent[0].keys(): # We suppose that keys are same
-                value = []
-                
-                for i in range(self.NUM_ENVS):
-                    assert (len(obsAgent[i][key]) == 1)
-                    value = value + [base64.b64encode(obsAgent[i][key][0]).decode('ascii'),]
-                resAgent[key] = value
-            payload[types[type_num]]["resAgent"] = resAgent
-           
-
-            for key in obsEnv[0].keys(): # We suppose that keys are same
-                value = []
-                for i in range(self.NUM_ENVS):
-                    value = value + [base64.b64encode(obsEnv[i][key][0]).decode('ascii'),]
-                resEnv[key] = value
-            payload[types[type_num]]["resEnv"] = resEnv
-        '''
-
         storage = []
         for i in range(self.NUM_ENVS):
             status, metadata, data = response(self.envs[i].conn)
@@ -188,8 +158,6 @@ class EnvOrchestrator():
                 collate[key].append(value)
         for key, valuelist in collate.items():
             collate[key] = np.concatenate(valuelist)
-        #packet = build_json_packet(STATUS.STEP, payload)
-        #self.conn.sendall(packet)
 
         request(self.conn, STATUS.STEP, collate)
 
@@ -202,12 +170,12 @@ class EnvOrchestrator():
     def reset_connection(self):
         for env in self.envs:
             env.close()
-            time.sleep(5)
+            time.sleep(3)
             env.start_connection()
         
     def close(self):
         for env in self.envs:
             env.close()
-        time.sleep(2)
+        time.sleep(3)
         self.conn.close()
         self.sock.close()

@@ -122,16 +122,21 @@ def _protocol_decode(metadata:dict, data:dict):
     def _decode(x, info) : 
         info = info.split("/")
         typeinfo = info[0]
+        print("Info:", info)
         if "str" in typeinfo:
             return x
-        elif any([t in typeinfo for t in ["int", "float", "bytes"]]):
+        elif "int" in typeinfo:
+            return x[0]
+        elif any([t in typeinfo for t in [ "float", "bytes"]]):
             return base64.b64decode(x[0].encode('ascii'))
+        elif typeinfo in ["System.Int32", "System.Int64","System.Float32", "System.Float64"] :
+            return x
         shape = tuple(int(x) for x in info[-1].replace("(","").replace(",)","").replace(")","").split(","))
-        if "Byte[]" in typeinfo:
+        if typeinfo == "System.Byte[]":
             return np.frombuffer(base64.b64decode(x[0].encode('ascii')), np.uint8).reshape(shape)
-        elif "Int16[]" in typeinfo:
+        elif typeinfo == "System.Int16[]":
             return np.array(x).reshape(shape)
-        elif "Single[]" in typeinfo:
+        elif typeinfo == "System.Single[]":
             return np.array(x).reshape(shape)
         elif "numpy.ndarray" in typeinfo:
             if isinstance(x, list):

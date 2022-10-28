@@ -95,31 +95,12 @@ class EnvModule():
         self.conn.sendall(packet)
 
     def collect_observations(self, ignore_agent_dim = False):
-        
-        '''
-        status_code, length, payload = recv_json_packet(self.conn) 
-        obs_type_separated = payload
-        
-        obs = {}
-        for type_key, obs_cur in obs_type_separated.items():
-            for source in ["resAgent", "resEnv"]:
-                obs_base64 = obs_cur[source]
-                for key, values in obs_base64.items():
-                    obs[key] = []
-                    if isinstance(values, list):
-                        for value in values:
-                            value_bytes = value.encode('ascii')
-                            value = base64.b64decode(value_bytes)
-                            obs[key].append(decode(value, type_key + "[]"))
-        '''
         status, metadata, data = response(self.conn)
         reward = data.pop("agent/reward")
         done = data.pop("agent/done", None)
         if done is None:
             done = data.pop("env/done")
         return data, reward, done
-        #print("GYM SIDE RECEIVED:", status, metadata, data)
-        return obs, data
     
     def reset(self, mask = None):
         if mask is None:
