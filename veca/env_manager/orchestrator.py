@@ -148,7 +148,7 @@ class EnvOrchestrator():
     def get_observation(self):
         storage = []
         for i in range(self.NUM_ENVS):
-            status, metadata, data = response(self.envs[i].conn)
+            status, metadata, data = self.envs[i].get_observation()
             storage.append((status, metadata, data))
         
         collate = {}
