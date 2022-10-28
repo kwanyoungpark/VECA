@@ -6,7 +6,7 @@ if __name__=="__main__":
     
     print(veca.gym.list_tasks())                        # List available VECA tasks
 
-    num_envs = 1
+    num_envs = 2
 
     env = veca.gym.make(
         task = "kicktheball",                    # VECA task name
@@ -23,7 +23,7 @@ if __name__=="__main__":
     for i in range(100):
         action = np.random.rand(num_envs, action_dim) * 2 - 1
         obs, reward, done, infos = env.step(action)
-        print("Env Step")
+        print("Env Step:", obs[0].shape, obs[1].shape)
         if any(done):
             env.reset()
     

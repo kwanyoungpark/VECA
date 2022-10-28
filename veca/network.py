@@ -1,4 +1,8 @@
 import struct,json
+from typing import Tuple
+import struct, base64
+import numpy as np
+
 
 def decode(byteArray, numtype):
     if numtype == 'uint8':
@@ -76,14 +80,91 @@ def build_json_packet(status, payload, metadata = None, use_metadata = False):
     else: return build_packet(status, [len(payload_json).to_bytes(4, 'little'),payload_json])
 
 def recv_json_packet(conn, use_metadata = False):
-    status_code = decode(recvall(conn, 1), 'uint8'); print("Status", status_code)
-    if use_metadata: metadata_length = decode(recvall(conn, 4), 'int'); print("MDL:", metadata_length)
-    length = decode(recvall(conn, 4), 'int'); print("Len:", length)
-    if use_metadata: payload_metadata = json.loads(decode(recvall(conn, metadata_length), 'str')) ; print("MD", payload_metadata)
-    payload_json = decode(recvall(conn, length), 'str') ; print("JSON", payload_json)
+    status_code = decode(recvall(conn, 1), 'uint8')
+    if use_metadata: metadata_length = decode(recvall(conn, 4), 'int')
+    length = decode(recvall(conn, 4), 'int')
+    if use_metadata: payload_metadata = json.loads(decode(recvall(conn, metadata_length), 'str'))
+    payload_json = decode(recvall(conn, length), 'str')
     payload = json.loads(payload_json)
     if use_metadata: return status_code, metadata_length, length, payload_metadata, payload
     else: return status_code, length, payload
+
+def _protocol_encode(data:dict):
+    output = {}
+    metadata = {}
+    def _encode(x) -> Tuple[str,str]:
+        info = str(type(x))
+        base64_ascii = lambda t:  base64.b64encode(t).decode("ascii")
+        if isinstance(x,np.ndarray):
+            return "/".join([str(type(x)), str(x.dtype), str(x.shape)]), base64_ascii(x.tobytes())
+        elif isinstance(x, list):
+            y = np.array(x)
+            return "/".join([str(type(y)), str(y.dtype), str(y.shape)]), base64_ascii(y.tobytes())
+        elif isinstance(x, str):
+            return info, x
+        elif isinstance(x, int):
+            return info, base64_ascii(np.array([x]))
+        elif isinstance(x, float):
+            return info, base64_ascii(np.array([x]))
+        elif isinstance(x, bytes):
+            return info, base64_ascii(x)
+        else:
+            print(type(x))
+            print(x.dtype)
+            raise NotImplementedError()
+    for key, value in data.items():
+        type_enc, value_enc = _encode(value)
+        output[key] = value_enc
+        metadata[key] = type_enc
+
+    return metadata, output
+def _protocol_decode(metadata:dict, data:dict):
+    def _decode(x, info) : 
+        info = info.split("/")
+        typeinfo = info[0]
+        if "str" in typeinfo:
+            return x
+        elif any([t in typeinfo for t in ["int", "float", "bytes"]]):
+            return base64.b64decode(x[0].encode('ascii'))
+        shape = tuple(int(x) for x in info[-1].replace("(","").replace(",)","").replace(")","").split(","))
+        if "Byte[]" in typeinfo:
+            return np.frombuffer(base64.b64decode(x[0].encode('ascii')), np.uint8).reshape(shape)
+        elif "Int16[]" in typeinfo:
+            return np.array(x).reshape(shape)
+        elif "Single[]" in typeinfo:
+            return np.array(x).reshape(shape)
+        elif "numpy.ndarray" in typeinfo:
+            if isinstance(x, list):
+                return np.array(x)
+            else:
+                bytedata = base64.b64decode(x.encode('ascii'))
+                if "uint8" in info[1]:
+                    nptype = np.uint8
+                elif "float32" in info[1]:
+                    nptype = np.float32 
+                elif "float64" in info[1]:
+                    nptype = np.float64
+                elif "int32" in info[1]:
+                    nptype = np.int32
+                elif "int64" in info[1]:
+                    nptype = np.int64
+                else:
+                    print("Type in:", info[1])
+                    raise NotImplementedError()
+                return np.frombuffer(bytedata, nptype).reshape(shape)
+        else:
+            print(typeinfo)
+            raise NotImplementedError()
+    return {key: _decode(value,metadata[key]) for key,value in data.items()}
+
+def request(conn, status, data:dict):
+    metadata, data = _protocol_encode(data)
+    packet = build_json_packet(status, data, metadata, use_metadata= True)
+    conn.sendall(packet)
+
+def response(conn):
+    status, _, _, metadata, data = recv_json_packet(conn, use_metadata = True)
+    return status, metadata, _protocol_decode(metadata,data)
 
 # STATUS CODE
 class STATUS:

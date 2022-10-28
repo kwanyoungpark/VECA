@@ -3,7 +3,7 @@ import socket
 import sys,json
 import time
 from veca.env_manager.instance import UnityInstance
-from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
+from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet, response, request
 import base64 
 import os.path, gdown, zipfile, os, stat
 
@@ -173,21 +173,23 @@ class EnvOrchestrator():
                     value = value + [base64.b64encode(obsEnv[i][key][0]).decode('ascii'),]
                 resEnv[key] = value
             payload[types[type_num]]["resEnv"] = resEnv
-        
+
+        storage = []
         for i in range(self.NUM_ENVS):
-            status, metadata, data = self.envs[i].response()
-            print(f"Get Observation of {i}-th Env:------------------------------------")
-            print("Status:", status)
-            print("Metadata:", metadata)
-            print("payload:", data)
-            print("------------------------------------")
-            
+            status, metadata, data = response(self.envs[i].conn)
+            storage.append((status, metadata, data))
+        
+        collate = {}
+        for _,_,data in storage:
+            for key,value in data.items():
+                if key not in collate: collate[key] = []
+                collate[key].append(value)
+        for key, valuelist in collate.items():
+            collate[key] = np.concatenate(valuelist)
         packet = build_json_packet(STATUS.STEP, payload)
-        '''
-        payload = json.dumps(payload).encode('utf-8')
-        packet = build_packet(STATUS.STEP, [len(payload).to_bytes(4, 'little'),payload])
-        '''
         self.conn.sendall(packet)
+
+        request(self.conn, STATUS.STEP, collate)
 
 
     def reset(self, mask):

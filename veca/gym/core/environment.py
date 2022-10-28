@@ -1,7 +1,7 @@
 import numpy as np
 import socket
 import struct
-from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet
+from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet, response
 import json, base64
 import time
 from multiprocessing import Process
@@ -77,8 +77,8 @@ class EnvModule():
             if ignore_agent_dim:
                 assert self.agents_per_env == 1
             self.send_action(action)
-            obs = self.collect_observations(ignore_agent_dim = ignore_agent_dim)
-            return obs
+            obs, data = self.collect_observations(ignore_agent_dim = ignore_agent_dim)
+            return obs, data
         except ConnectionError as ex:
             self.close()
             print(ex)
@@ -111,7 +111,10 @@ class EnvModule():
                             value_bytes = value.encode('ascii')
                             value = base64.b64decode(value_bytes)
                             obs[key].append(decode(value, type_key + "[]"))
-        return obs
+
+        status, metadata, data = response(self.conn)
+        #print("GYM SIDE RECEIVED:", status, metadata, data)
+        return obs, data
     
     def reset(self, mask = None):
         if mask is None:
