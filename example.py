@@ -23,7 +23,7 @@ if __name__=="__main__":
     for i in range(100):
         action = np.random.rand(num_envs, action_dim) * 2 - 1
         obs, reward, done, infos = env.step(action)
-        print("Env Step:", obs[0].shape, obs[1].shape)
+        print("Env Step:", obs['agent/img'].shape, obs['agent/wav'].shape)
         if any(done):
             env.reset()
     

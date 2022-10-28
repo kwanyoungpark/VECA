@@ -27,7 +27,8 @@ class Environment(EnvModule):
         self.num_envs = num_envs
     
     def step(self, action):
-        data, data2 = super().step(action)
+        data, rewards, done = super().step(action)
+        '''
         rewards, done, info = [], [], []
         imgs, wavs = [], []
         for i in range(self.num_envs):
@@ -46,8 +47,9 @@ class Environment(EnvModule):
             else: done.append(False)
             info.append(pos)
         imgs, wavs = np.array(imgs), np.array(wavs)
-        #imgs, wavs = data2["agent/img"], data2["agent/wav"]
-        obs = (imgs, wavs)
-        return (obs, rewards, done, info)
+        
+        '''
+        obs = {key:data.pop(key) for key in ["agent/img","agent/wav"]}
+        return (obs, rewards, done, data)
 
 

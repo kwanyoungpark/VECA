@@ -77,8 +77,7 @@ class EnvModule():
             if ignore_agent_dim:
                 assert self.agents_per_env == 1
             self.send_action(action)
-            obs, data = self.collect_observations(ignore_agent_dim = ignore_agent_dim)
-            return obs, data
+            return self.collect_observations(ignore_agent_dim = ignore_agent_dim)
         except ConnectionError as ex:
             self.close()
             print(ex)
@@ -113,6 +112,11 @@ class EnvModule():
                             obs[key].append(decode(value, type_key + "[]"))
 
         status, metadata, data = response(self.conn)
+        reward = data.pop("agent/reward")
+        done = data.pop("agent/done", None)
+        if done is None:
+            done = data.pop("env/done")
+        return data, reward, done
         #print("GYM SIDE RECEIVED:", status, metadata, data)
         return obs, data
     
