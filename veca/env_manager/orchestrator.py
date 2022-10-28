@@ -146,6 +146,7 @@ class EnvOrchestrator():
         self.get_observation()
     
     def get_observation(self):
+        '''
         payload = {}
 
         for type_num in range(5):
@@ -173,6 +174,7 @@ class EnvOrchestrator():
                     value = value + [base64.b64encode(obsEnv[i][key][0]).decode('ascii'),]
                 resEnv[key] = value
             payload[types[type_num]]["resEnv"] = resEnv
+        '''
 
         storage = []
         for i in range(self.NUM_ENVS):
@@ -186,8 +188,8 @@ class EnvOrchestrator():
                 collate[key].append(value)
         for key, valuelist in collate.items():
             collate[key] = np.concatenate(valuelist)
-        packet = build_json_packet(STATUS.STEP, payload)
-        self.conn.sendall(packet)
+        #packet = build_json_packet(STATUS.STEP, payload)
+        #self.conn.sendall(packet)
 
         request(self.conn, STATUS.STEP, collate)
 

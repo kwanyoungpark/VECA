@@ -28,27 +28,6 @@ class Environment(EnvModule):
     
     def step(self, action):
         data, rewards, done = super().step(action)
-        '''
-        rewards, done, info = [], [], []
-        imgs, wavs = [], []
-        for i in range(self.num_envs):
-            img = list(reversed(data['img'][i]))
-            wav = data['wav'][i]
-            doneA = data['done'][i][0]
-            reward = data['reward'][i][0]
-            pos = data['pos'][i]
-            img = np.reshape(np.array(img), [6, IMG_H, IMG_W]) / 255.0
-            wav = np.reshape(np.array(wav), [2, -1]) / 32768.0 
-            wav = wav2freq(wav)
-            imgs.append(img)
-            wavs.append(wav)
-            rewards.append(reward)
-            if doneA: done.append(True)
-            else: done.append(False)
-            info.append(pos)
-        imgs, wavs = np.array(imgs), np.array(wavs)
-        
-        '''
         obs = {key:data.pop(key) for key in ["agent/img","agent/wav"]}
         return (obs, rewards, done, data)
 

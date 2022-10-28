@@ -96,6 +96,7 @@ class EnvModule():
 
     def collect_observations(self, ignore_agent_dim = False):
         
+        '''
         status_code, length, payload = recv_json_packet(self.conn) 
         obs_type_separated = payload
         
@@ -110,7 +111,7 @@ class EnvModule():
                             value_bytes = value.encode('ascii')
                             value = base64.b64decode(value_bytes)
                             obs[key].append(decode(value, type_key + "[]"))
-
+        '''
         status, metadata, data = response(self.conn)
         reward = data.pop("agent/reward")
         done = data.pop("agent/done", None)

@@ -50,11 +50,12 @@ class UnityInstance():
         self._echo_test()
 
         request(self.conn, STATUS.STEP, {"action":action})
-        self.conn.sendall(b'STEP')
-        self.conn.sendall(action)
+        #self.conn.sendall(b'STEP')
+        #self.conn.sendall(action)
         #print('STEP', action)
     
     def get_observation(self, type_num):
+        '''
         obsAgent = {}
         data_type = types[type_num]
         N = decode(recvall(self.conn, 4), 'int')
@@ -92,15 +93,17 @@ class UnityInstance():
                     value.append(None)
             obsEnv[key] = value
         return obsAgent, obsEnv
+        '''
+        return None
     
     def reset(self, mask = None):
         self._echo_test()
 
-        request(self.conn, STATUS.REST, {"mask":mask})
         if mask is None:
             mask = np.ones(self.NUM_ENVS, dtype = np.uint8)
-        self.conn.sendall(b'REST')
-        self.conn.sendall(mask)    
+        request(self.conn, STATUS.REST, {"mask":mask})
+        #self.conn.sendall(b'REST')
+        #self.conn.sendall(mask)    
 
     def reset_connection(self):
         self._echo_test()
@@ -114,6 +117,6 @@ class UnityInstance():
         self._echo_test()
 
         request(self.conn, STATUS.CLOS, {})
-        self.conn.sendall(b'CLOS')
+        #self.conn.sendall(b'CLOS')
         self.conn.close()
         self.sock.close()
