@@ -1,12 +1,12 @@
 import numpy as np
 import socket
 import subprocess
-from veca.network import STATUS,  request, response
+from veca.network import STATUS,  request, response, HelpException
 
 class UnityInstance():
     def __init__(self, NUM_ENVS, port, exec_str, args):
         self.NUM_ENVS = NUM_ENVS
-        exec_str = [exec_str] + args + ['-ip', 'localhost', '-port', str(port)]
+        exec_str = [exec_str] + args + ['--ip', 'localhost', '--port', str(port)]
         self.start_connection(port, exec_str, NUM_ENVS)
     
     def start_connection(self, port, exec_str, num_envs):
@@ -26,9 +26,15 @@ class UnityInstance():
 
         request(self.conn, STATUS.INIT, {"num_envs":num_envs})
         status, _, data = response(self.conn)
-        self.AGENTS_PER_ENV = data["agents_per_env"][0]
-        self.NUM_AGENTS = self.AGENTS_PER_ENV * num_envs
-        self.action_space = data["action_length"][0]
+        if status == STATUS.HELP:
+            print(data["help"])
+            raise HelpException()
+        elif status == STATUS.INIT:
+            self.AGENTS_PER_ENV = data["agents_per_env"][0]
+            self.NUM_AGENTS = self.AGENTS_PER_ENV * num_envs
+            self.action_space = data["action_length"][0]
+        else:
+            raise NotImplementedError()
 
     def send_action(self, action):
         request(self.conn, STATUS.STEP, {"action":action})

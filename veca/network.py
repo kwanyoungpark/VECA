@@ -129,6 +129,8 @@ def _protocol_decode(metadata:dict, data:dict):
             return x[0]
         elif any([t in typeinfo for t in [ "float", "bytes"]]):
             return base64.b64decode(x[0].encode('ascii'))
+        elif typeinfo == "System.String":
+            return x[0]
         elif typeinfo in ["System.Int32", "System.Int64","System.Float32", "System.Float64"] :
             return x
         shape = tuple(int(x) for x in info[-1].replace("(","").replace(",)","").replace(")","").split(","))
@@ -178,7 +180,10 @@ class STATUS:
     INIT = 102
     RECO = 200
     CLOS = 201
-    
+    HELP = 202
+
+class HelpException(Exception):
+    pass
 
 # terminator
 terminator = b'\xFF\xFE\xFE\xFF',

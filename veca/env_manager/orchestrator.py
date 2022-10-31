@@ -3,7 +3,7 @@ import socket
 import sys,json
 import time
 from veca.env_manager.instance import UnityInstance
-from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet, response, request
+from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet, response, request, HelpException
 import base64 
 import os.path, gdown, zipfile, os, stat
 
@@ -66,12 +66,6 @@ class EnvOrchestrator():
         self.args = packet["args"]
         self.seeds = packet['seeds']
 
-        #if self.TOTAL_NUM_ENVS % self.NUM_ENVS != 0:
-        #    raise NotImplementedError('NOT SUPPORTED YET')
-        '''
-        if self.task not in task_executable.keys():
-            raise NotImplementedError('TASK NOT SUPPORTED YET')
-        '''
         try:
             self.exec_str = self.task_info.path
             if not os.path.exists(self.exec_str):
@@ -95,12 +89,25 @@ class EnvOrchestrator():
 
         self.ENVS_PER_ENV = self.TOTAL_NUM_ENVS // self.NUM_ENVS
             
-        self.envs = []
-        for i in range(self.NUM_ENVS):
-            if self.seeds is not None: args = self.args + ["-seed", str(self.seeds[i])]
-            else: args = self.args
-            self.envs.append(UnityInstance(self.ENVS_PER_ENV, self.port_instance + i, self.exec_str, args))
-        self.envs = list(reversed(self.envs))
+        try:
+            self.envs = []
+            for i in range(self.NUM_ENVS):
+                if self.seeds is not None: args = self.args + ["-seed", str(self.seeds[i])]
+                else: args = self.args
+                self.envs.append(UnityInstance(self.ENVS_PER_ENV, self.port_instance + i, self.exec_str, args))
+            self.envs = list(reversed(self.envs))
+        except HelpException as ex:
+            self.close()
+            print("--help passed to execution arguments") 
+            return                   
+        except ConnectionError as ex:
+            self.close()
+            print(ex)
+            raise ex
+        except KeyboardInterrupt as ex:
+            self.close()
+            print(ex)
+            raise ex
         
         try:
             self.AGENTS_PER_ENV = self.envs[0].AGENTS_PER_ENV
