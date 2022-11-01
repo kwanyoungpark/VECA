@@ -89,79 +89,108 @@ def recv_json_packet(conn, use_metadata = False):
     if use_metadata: return status_code, metadata_length, length, payload_metadata, payload
     else: return status_code, length, payload
 
+
+str_npType = {
+    "byte":np.int8, "char":np.uint16, "short":np.int16, "int":np.int32, "long":np.int64, "float":np.float32, "double":np.float64
+}
+npType_str = {np.dtype(k):v for (k, v) in {
+    np.int8: "sbyte", np.uint8: "byte",
+    np.int16: "short", np.uint16: "char", 
+    np.int32: "int", 
+    np.int64: "long", 
+    np.float32: "float", 
+    np.float64: "double"
+}.items()}
+Primitive_str = {
+    int: "int", float: "float"
+}
+
+base64_ascii_encode = lambda t:  base64.b64encode(t).decode("ascii")
+base64_ascii_decode = lambda t:  base64.b64decode(t[0].encode('ascii'))
+
+def _encode(x) -> Tuple[str,str]:
+    
+    if isinstance(x,str):
+        return "string", x
+    elif isinstance(x, list):
+        if all([isinstance(e, str) for e in x]):
+            return "string[]", "#".join(x)
+    elif isinstance(x,np.ndarray):
+        print(x.dtype)
+        print(type(x.dtype))
+        return "/".join(["array", npType_str[x.dtype], str(x.shape)]),  base64_ascii(x.tobytes())
+    elif any([isinstance(x, t) for t in [int, float]]):
+        return "primitive/" + Primitive_str[type(x)] , base64_ascii(np.array([x]).tobytes())
+    else:
+        raise NotImplementedError("Not Implemented for type" + str(type(x)))
+    '''
+    elif ctype == "string[]":
+        return x.split('#')
+    elif ctype == "array":
+        dtype = str_npType[api[1]]
+        shape_str = api[2].replace("(","").replace(",)","").replace(")","").split(",")
+        shape = tuple(int(x) for x in shape_str)
+        return np.frombuffer(x.encode('utf8'), dtype).reshape(shape)
+    elif ctype == "primitive":
+        dtype = str_npType[api[1]]
+        return np.frombuffer(x.encode('utf8'), dtype)[0]
+    else:
+        raise NotImplementedError("Not implemented for type:" + ctype)
+    info = str(type(x))
+    
+    if isinstance(x,np.ndarray):
+        return "/".join([str(type(x)), str(x.dtype), str(x.shape)]), x.tobytes().decode('utf-8')
+    elif isinstance(x, list):
+        if isinstance(x[0], str):
+            return "strings", x
+        y = np.array(x)
+        return "/".join([str(type(y)), str(y.dtype), str(y.shape)]), base64_ascii(y.tobytes())
+    elif isinstance(x, str):
+        return info, x
+    elif isinstance(x, int):
+        return info, base64_ascii(np.array([x]))
+    elif isinstance(x, float):
+        return info, base64_ascii(np.array([x]))
+    elif isinstance(x, bytes):
+        return info, base64_ascii(x)
+    else:
+        print(type(x))
+        #print(x.dtype)
+        raise NotImplementedError()
+    '''
+
 def _protocol_encode(data:dict):
     output = {}
     metadata = {}
-    def _encode(x) -> Tuple[str,str]:
-        info = str(type(x))
-        base64_ascii = lambda t:  base64.b64encode(t).decode("ascii")
-        if isinstance(x,np.ndarray):
-            return "/".join([str(type(x)), str(x.dtype), str(x.shape)]), base64_ascii(x.tobytes())
-        elif isinstance(x, list):
-            y = np.array(x)
-            return "/".join([str(type(y)), str(y.dtype), str(y.shape)]), base64_ascii(y.tobytes())
-        elif isinstance(x, str):
-            return info, x
-        elif isinstance(x, int):
-            return info, base64_ascii(np.array([x]))
-        elif isinstance(x, float):
-            return info, base64_ascii(np.array([x]))
-        elif isinstance(x, bytes):
-            return info, base64_ascii(x)
-        else:
-            print(type(x))
-            print(x.dtype)
-            raise NotImplementedError()
+    
     for key, value in data.items():
+        print("Key:", key, "value:", value)
         type_enc, value_enc = _encode(value)
         output[key] = value_enc
         metadata[key] = type_enc
+        print(value,"->", type_enc, value_enc)
 
     return metadata, output
+
+def _decode(x, api) : 
+    api = api.split("/")
+    ctype = api[0]
+    if ctype == "string":
+        return x
+    elif ctype == "string[]":
+        return x.split('#')
+    elif ctype == "array":
+        dtype = str_npType[api[1]]
+        shape_str = api[2].replace("(","").replace(",)","").replace(")","").split(",")
+        shape = tuple(int(x) for x in shape_str)
+        return np.frombuffer(base64_ascii_decode(x), dtype).reshape(shape)
+    elif ctype == "primitive":
+        dtype = str_npType[api[1]]
+        return np.frombuffer(base64_ascii_decode(x), dtype)[0]
+    else:
+        raise NotImplementedError("Not implemented for type:" + ctype)
+
 def _protocol_decode(metadata:dict, data:dict):
-    def _decode(x, info) : 
-        info = info.split("/")
-        typeinfo = info[0]
-        print("Info:", info)
-        if "str" in typeinfo:
-            return x
-        elif "int" in typeinfo:
-            return x[0]
-        elif any([t in typeinfo for t in [ "float", "bytes"]]):
-            return base64.b64decode(x[0].encode('ascii'))
-        elif typeinfo == "System.String":
-            return x[0]
-        elif typeinfo in ["System.Int32", "System.Int64","System.Float32", "System.Float64"] :
-            return x
-        shape = tuple(int(x) for x in info[-1].replace("(","").replace(",)","").replace(")","").split(","))
-        if typeinfo == "System.Byte[]":
-            return np.frombuffer(base64.b64decode(x[0].encode('ascii')), np.uint8).reshape(shape)
-        elif typeinfo == "System.Int16[]":
-            return np.array(x).reshape(shape)
-        elif typeinfo == "System.Single[]":
-            return np.array(x).reshape(shape)
-        elif "numpy.ndarray" in typeinfo:
-            if isinstance(x, list):
-                return np.array(x)
-            else:
-                bytedata = base64.b64decode(x.encode('ascii'))
-                if "uint8" in info[1]:
-                    nptype = np.uint8
-                elif "float32" in info[1]:
-                    nptype = np.float32 
-                elif "float64" in info[1]:
-                    nptype = np.float64
-                elif "int32" in info[1]:
-                    nptype = np.int32
-                elif "int64" in info[1]:
-                    nptype = np.int64
-                else:
-                    print("Type in:", info[1])
-                    raise NotImplementedError()
-                return np.frombuffer(bytedata, nptype).reshape(shape)
-        else:
-            print(typeinfo)
-            raise NotImplementedError()
     return {key: _decode(value,metadata[key]) for key,value in data.items()}
 
 def request(conn, status, data:dict):

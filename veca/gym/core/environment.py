@@ -1,7 +1,7 @@
 import numpy as np
 import socket
 import struct
-from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet, response
+from veca.network import decode, recvall, types, typesz, STATUS, build_packet, recv_json_packet, build_json_packet, response, request
 import json, base64
 import time
 from multiprocessing import Process
@@ -59,14 +59,16 @@ class EnvModule():
             exec_path_win, download_link_win,
             exec_path_linux, download_link_linux,
         ):
-        payload = {"task": task, "NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args, "seeds": seeds,
+        payload = {"task": task, "NUM_ENVS":num_envs, "TOTAL_NUM_ENVS": total_num_envs, "args": args, "seeds": np.array(seeds),
             "exec_path_win":exec_path_win, "download_link_win":download_link_win, 
             "exec_path_linux":exec_path_linux, "download_link_linux":download_link_linux, 
         }
-        packet = build_json_packet(STATUS.INIT, payload)
-        self.conn.sendall(packet)
+        request(self.conn,STATUS.INIT, payload )
+        #packet = build_json_packet(STATUS.INIT, payload)
+        #self.conn.sendall(packet)
         
-        _,_, packet = recv_json_packet(self.conn)
+        _,_, packet = response(self.conn)
+        #_,_, packet = recv_json_packet(self.conn)
         self.agents_per_env = packet["AGENTS_PER_ENV"]
         self.action_space = packet["action_space"]
         
@@ -90,9 +92,10 @@ class EnvModule():
     def send_action(self, action):
         action = np.reshape(action, [self.num_envs, self.agents_per_env, self.action_space])
         action = np.array(action).astype(np.float32)
+        request(self.conn, STATUS.STEP, {"action":action})
         
-        packet = build_packet(STATUS.STEP, [action.tobytes(),])
-        self.conn.sendall(packet)
+        #packet = build_packet(STATUS.STEP, [action.tobytes(),])
+        #self.conn.sendall(packet)
 
     def collect_observations(self, ignore_agent_dim = False):
         status, metadata, data = response(self.conn)
@@ -107,17 +110,20 @@ class EnvModule():
             mask = np.ones(self.num_envs, dtype = np.uint8)
         else:
             mask = np.array(mask, dtype = np.uint8)
-        packet = build_packet(STATUS.REST, [mask.tobytes(),])
-        self.conn.sendall(packet)  
+        request(self.conn,STATUS.REST, {"mask":mask} )
+        #packet = build_packet(STATUS.REST, [mask.tobytes(),])
+        #self.conn.sendall(packet)  
 
     def reset_connection(self):
         # Due to memory leak in socket
-        packet = build_packet(STATUS.RECO, [])
-        self.conn.sendall(packet)
+        request(self.conn, STATUS.RECO, {})
+        #packet = build_packet(STATUS.RECO, [])
+        #self.conn.sendall(packet)
         
     def close(self):
-        packet = build_packet(STATUS.CLOS, [])
-        self.conn.sendall(packet)
+        request(self.conn, STATUS.CLOS, {})
+        #packet = build_packet(STATUS.CLOS, [])
+        #self.conn.sendall(packet)
         time.sleep(1)
         self.conn.close()
         time.sleep(3)

@@ -32,7 +32,14 @@ class EnvOrchestrator():
         
         self.listen(port)
         self.conn, addr = self.sock.accept()
-        self.serve()
+
+        _, _, order = response(self.conn)
+        print("Order:", order)
+        #_, _, order = recv_json_packet(self.conn)
+
+        self.download_unity_app(order)
+        self.handshake(order)
+        self.serve(order)
     
     def listen(self,port):
         self.sock = socket.socket()
@@ -42,8 +49,7 @@ class EnvOrchestrator():
         print("Env Orchestrator Listening to ",hostName, " PORT ",port)
         self.sock.listen(1) 
 
-    def serve(self):    
-        _, _, packet = recv_json_packet(self.conn)
+    def download_unity_app(self, packet):
         self.task = packet["task"]
 
         cur_os = platform.system() 
@@ -61,11 +67,6 @@ class EnvOrchestrator():
         print("download Link:", self.task_info.download_link)
         print("exec_path:", self.task_info.path)
 
-        self.TOTAL_NUM_ENVS = packet["TOTAL_NUM_ENVS"]
-        self.NUM_ENVS = packet["NUM_ENVS"]
-        self.args = packet["args"]
-        self.seeds = packet['seeds']
-
         try:
             self.exec_str = self.task_info.path
             if not os.path.exists(self.exec_str):
@@ -81,14 +82,18 @@ class EnvOrchestrator():
                 if not os.path.exists(self.exec_str):
                     raise ValueError('CANNOT DOWNLOAD TASK EXECUTABLE.')
                 os.chmod(packet["exec_path_linux"], os.stat(packet["exec_path_linux"]).st_mode | stat.S_IEXEC)
-        except ex:
+        except Exception as ex:
             self.close()
             print(ex)
             raise
 
+    def handshake(self, packet):
+        self.TOTAL_NUM_ENVS = packet["TOTAL_NUM_ENVS"]
+        self.NUM_ENVS = packet["NUM_ENVS"]
+        self.args = packet["args"]
+        self.seeds = packet['seeds']
 
         self.ENVS_PER_ENV = self.TOTAL_NUM_ENVS // self.NUM_ENVS
-            
         try:
             self.envs = []
             for i in range(self.NUM_ENVS):
@@ -96,6 +101,17 @@ class EnvOrchestrator():
                 else: args = self.args
                 self.envs.append(UnityInstance(self.ENVS_PER_ENV, self.port_instance + i, self.exec_str, args))
             self.envs = list(reversed(self.envs))
+
+            self.AGENTS_PER_ENV = self.envs[0].AGENTS_PER_ENV
+            self.NUM_AGENTS = self.AGENTS_PER_ENV * self.TOTAL_NUM_ENVS
+            self.action_space = self.envs[0].action_space
+            
+            payload = {"AGENTS_PER_ENV":self.AGENTS_PER_ENV, "action_space": self.action_space}
+
+            request(self.conn, STATUS.INIT, payload)
+            #packet = build_json_packet(STATUS.INIT,payload)
+            #self.conn.sendall(packet)
+
         except HelpException as ex:
             self.close()
             print("--help passed to execution arguments") 
@@ -108,31 +124,26 @@ class EnvOrchestrator():
             self.close()
             print(ex)
             raise ex
-        
-        try:
-            self.AGENTS_PER_ENV = self.envs[0].AGENTS_PER_ENV
-            self.NUM_AGENTS = self.AGENTS_PER_ENV * self.TOTAL_NUM_ENVS
-            self.action_space = self.envs[0].action_space
-            
-            payload = {"AGENTS_PER_ENV":self.AGENTS_PER_ENV, "action_space": self.action_space}
-            packet = build_json_packet(STATUS.INIT,payload)
-            self.conn.sendall(packet)
 
+    def serve(self,packet):    
+        try:
             while True:
-                status_code = decode(recvall(self.conn, 1), 'uint8')
+                status, _, data = response(self.conn)
+                #status_code = decode(recvall(self.conn, 1), 'uint8')
                 
-                if status_code == STATUS.REST:
-                    mask = recvall(self.conn, self.TOTAL_NUM_ENVS)
-                    self.reset(mask)
+                if status == STATUS.REST:
+                    #mask = recvall(self.conn, self.TOTAL_NUM_ENVS)
+                    self.reset(data["mask"])
                     
-                elif status_code == STATUS.STEP:
-                    action = recvall(self.conn, 4 * self.NUM_AGENTS * self.action_space)
-                    self.step(action)
+                elif status == STATUS.STEP:
+                    #action = recvall(self.conn, 4 * self.NUM_AGENTS * self.action_space)
+                    observations = self.step(data["action"])
+                    request(self.conn, STATUS.STEP, observations)
                     
-                elif status_code == STATUS.RECO:
+                elif status == STATUS.RECO:
                     self.reset_connection()
 
-                elif status_code == STATUS.CLOS:
+                elif status == STATUS.CLOS:
                     self.close()
                     break
                     
@@ -165,9 +176,7 @@ class EnvOrchestrator():
                 collate[key].append(value)
         for key, valuelist in collate.items():
             collate[key] = np.concatenate(valuelist)
-
-        request(self.conn, STATUS.STEP, collate)
-
+        return collate
 
     def reset(self, mask):
         for i, env in enumerate(self.envs):            

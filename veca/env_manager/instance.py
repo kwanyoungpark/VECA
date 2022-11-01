@@ -2,14 +2,16 @@ import numpy as np
 import socket
 import subprocess
 from veca.network import STATUS,  request, response, HelpException
+from typing import List
 
 class UnityInstance():
-    def __init__(self, NUM_ENVS, port, exec_str, args):
+    def __init__(self, NUM_ENVS:int, port:int, exec_str:str, args:List[str]):
         self.NUM_ENVS = NUM_ENVS
         exec_str = [exec_str] + args + ['--ip', 'localhost', '--port', str(port)]
-        self.start_connection(port, exec_str, NUM_ENVS)
+        self.start_connection(port, exec_str)
+        self.handshake(NUM_ENVS)
     
-    def start_connection(self, port, exec_str, num_envs):
+    def start_connection(self, port, exec_str):
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -24,6 +26,7 @@ class UnityInstance():
         (self.conn, self.addr) = self.sock.accept()
         print("CONNECTED")
 
+    def handshake(self, num_envs):
         request(self.conn, STATUS.INIT, {"num_envs":num_envs})
         status, _, data = response(self.conn)
         if status == STATUS.HELP:
