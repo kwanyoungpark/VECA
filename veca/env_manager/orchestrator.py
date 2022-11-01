@@ -27,11 +27,11 @@ def validate_ip_and_port(ip, port, num_envs):
     return ip,port
 
 class EnvOrchestrator():
-    def __init__(self,  port:int, port_instance:int = 46490):
+    def __init__(self, ip:str,  port:int, port_instance:int = 46490):
         self.port_instance = port_instance
         
-        self.listen(port)
-        self.conn, addr = self.sock.accept()
+        ip = socket.gethostbyname(ip)
+        self.conn = self.start_connection(ip, port)
 
         _, _, order = response(self.conn)
         print("Order:", order)
@@ -41,13 +41,14 @@ class EnvOrchestrator():
         self.handshake(order)
         self.serve(order)
     
-    def listen(self,port):
-        self.sock = socket.socket()
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        hostName = socket.gethostbyname( '0.0.0.0' )
-        self.sock.bind((hostName, port))
-        print("Env Orchestrator Listening to ",hostName, " PORT ",port)
-        self.sock.listen(1) 
+    def start_connection(self,ip, port):
+        conn = socket.socket()
+        conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        print("CONNECTING TO VECA GYM SERVER : " + str(ip) + ":" + str(port))
+        
+        conn.connect((ip, port))
+        print("CONNECTED TO VECA GYM SERVER")
+        return conn
 
     def download_unity_app(self, packet):
         self.task = packet["task"]
@@ -129,14 +130,11 @@ class EnvOrchestrator():
         try:
             while True:
                 status, _, data = response(self.conn)
-                #status_code = decode(recvall(self.conn, 1), 'uint8')
                 
                 if status == STATUS.REST:
-                    #mask = recvall(self.conn, self.TOTAL_NUM_ENVS)
                     self.reset(data["mask"])
                     
                 elif status == STATUS.STEP:
-                    #action = recvall(self.conn, 4 * self.NUM_AGENTS * self.action_space)
                     observations = self.step(data["action"])
                     request(self.conn, STATUS.STEP, observations)
                     
@@ -158,8 +156,6 @@ class EnvOrchestrator():
 
     def step(self, action):
         for i in range(self.NUM_ENVS):
-            #s, e = i*(self.AGENTS_PER_ENV*self.ENVS_PER_ENV*self.action_space),(i+1)*(self.AGENTS_PER_ENV*self.ENVS_PER_ENV*self.action_space)
-            #self.envs[i].send_action(action)
             self.envs[i].send_action(action[i * self.ENVS_PER_ENV:i+1 * self.ENVS_PER_ENV])
         return self.get_observation()
     
@@ -177,7 +173,9 @@ class EnvOrchestrator():
         for key, valuelist in collate.items():
             if isinstance(valuelist[0], np.ndarray): # NDARRAY
                 collate[key] = np.concatenate(valuelist)
-            else: # PRIMITIVE
+            elif isinstance(valuelist[0], str):
+                collate[key] = valuelist
+            else : # PRIMITIVE
                 collate[key] = np.array(valuelist)
         return collate
 
@@ -197,4 +195,3 @@ class EnvOrchestrator():
             env.close()
         time.sleep(3)
         self.conn.close()
-        self.sock.close()

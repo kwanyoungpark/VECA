@@ -19,16 +19,19 @@ class Environment(EnvModule):
             ):
         EnvModule.__init__(self, task, num_envs, args, seeds,
             remote_env, port,
-            exec_path_win = "veca\\env_manager\\bin\\kicktheball\\VECAUnityApp.exe",
-            download_link_win = "https://drive.google.com/uc?export=download&id=1Qq9SuDMB_0yim05mB_fJwDHriT4amAQZ",
-            exec_path_linux = "./veca/env_manager/bin/kicktheball/kicktheball.x86_64",
-            download_link_linux = "https://drive.google.com/uc?export=download&id=1pycqQ7z6y6YkTpRYI8B6g2pKBtVHdgk3"
+            exec_path_win = "veca\\env_manager\\bin\\cogscinav\\VECAUnityApp.exe",
+            download_link_win = "https://drive.google.com/uc?export=download&id=",
+            exec_path_linux = "./veca/env_manager/bin/kicktheball/cogscinav.x86_64",
+            download_link_linux = "https://drive.google.com/uc?export=download&id="
             )
         self.num_envs = num_envs
     
     def step(self, action):
         data, rewards, done = super().step(action)
-        obs = {key:data.pop(key) for key in ["agent/img","agent/wav"]}
+        obs = {}
+        for key in ["agent/img","agent/wav"]:
+            if key in data:
+                obs[key] = data.pop(key)
         return (obs, rewards, done, data)
 
 

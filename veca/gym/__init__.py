@@ -74,5 +74,5 @@ def make(task: str, num_envs: int, args: 'list[str]', seeds:Optional['list[int]'
             args = args,
             seeds = seeds,
             remote_env = remote_env,
-            ip = ip, port = port, 
+            port = port, 
             )

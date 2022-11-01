@@ -10,9 +10,9 @@ from veca.gym.core import EnvModule
 
 class Environment(EnvModule):
     def __init__(self, task, num_envs,args, seeds,
-            remote_env, ip, port):
+            remote_env, port):
         EnvModule.__init__(self, task, num_envs, args, seeds,
-            remote_env, ip, port,
+            remote_env, port,
             exec_path_win = "veca\\env_manager\\bin\\disktower_multiagent\\VECAUnityApp.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=1uoBXn8AvKcc1wQpFj3vI0qYssfSjYGEb",
             exec_path_linux ="./veca/env_manager/bin/disktower_multiagent/disktowermultiagent.x86_64",

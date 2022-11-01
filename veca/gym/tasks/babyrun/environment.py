@@ -29,7 +29,7 @@ class Environment(EnvModule):
             remote_env, ip, port,
         ):
         EnvModule.__init__(self,task, num_envs,args,  seeds,
-            remote_env, ip,port, 
+            remote_env, port, 
             exec_path_win = "veca\\env_manager\\bin\\babyrun\\VECA-BS.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=1fbpQffo30ULbInX21NqP6U5nuEycKtW0",
             exec_path_linux = "veca/env_manager/bin/babyrun/babyrun.x86_64",

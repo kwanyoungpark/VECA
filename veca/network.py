@@ -112,12 +112,13 @@ base64_ascii_encode = lambda t:  base64.b64encode(t).decode("ascii")
 base64_ascii_decode = lambda t:  base64.b64decode(t.encode('ascii'))
 
 def _encode(x) -> Tuple[str,str]:
-    
     if isinstance(x,str):
         return "string", x
     elif isinstance(x, list):
         if all([isinstance(e, str) for e in x]):
             return "string[]", "#".join(x)
+        else:
+            raise NotImplementedError("Supporting only list of strings")
     elif isinstance(x,np.ndarray):
         return "/".join(["array", npType_str[x.dtype], str(x.shape)]),  base64_ascii_encode(x.tobytes())
     elif any([isinstance(x, t) for t in [int, float]]):

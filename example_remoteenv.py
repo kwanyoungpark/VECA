@@ -15,7 +15,7 @@ if __name__=="__main__":
         args = ["-train", "-timeout", "-1"],                # VECA task additional arguments
         seeds = random.sample(range(0, 2000), num_envs),    # seeds per env instances
         remote_env = True,                                  # Whether to use the Environment Orchestrator process at a remote server. If True, the orchestrator's ip and port should be given.               
-        ip = "127.0.0.1", port= 8872,                       # ip and port of remote Envionment Orchestrator master
+        port= 8872,                                         # Exposed port of VECA GYM API
         )
 
     action_dim = env.action_space

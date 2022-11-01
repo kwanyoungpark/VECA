@@ -9,9 +9,9 @@ if __name__=="__main__":
     num_envs = 2
 
     env = veca.gym.make(
-        task = "kicktheball",                    # VECA task name
+        task = "cogscinav",                    # VECA task name
         num_envs = num_envs,                                # Number of parallel environment instances to execute
-        args = ["--train",  "--fps=100"],                # VECA task additional arguments,
+        args = ["--train", "--useaudio"],                # VECA task additional arguments,
         seeds = random.sample(range(0, 2000), num_envs),    # seeds per env instances
         remote_env = False                                  # Whether to use the Environment Orchestrator process at a remote server.
         )
@@ -23,7 +23,8 @@ if __name__=="__main__":
     for i in range(100):
         action = np.random.rand(num_envs, action_dim) * 2 - 1
         obs, reward, done, infos = env.step(action)
-        print("Env Step:", obs['agent/img'].shape, obs['agent/wav'].shape)
+        print("Env Step:", obs['agent/img'].shape,obs['agent/wav'].shape)
+        print("Env infos:", infos['agent/obj'], infos['agent/color']  )
         if any(done):
             env.reset()
     

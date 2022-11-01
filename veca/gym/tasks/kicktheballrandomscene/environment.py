@@ -15,10 +15,10 @@ def wav2freq(wav):
 
 class Environment(EnvModule):
     def __init__(self, task, num_envs, args, seeds,
-            remote_env, ip, port
+            remote_env, port
             ):
         EnvModule.__init__(self, task, num_envs, args, seeds,
-            remote_env, ip, port,
+            remote_env, port,
             exec_path_win = "veca\\env_manager\\bin\\kicktheballrandomscene\\VECAUnityApp.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=1AoS5QsltcZmzLBxuIdKVuqQ4RpfI6FuE",
             exec_path_linux = "./veca/env_manager/bin/kicktheballrandomscene/kicktheballrandomscene.x86_64",

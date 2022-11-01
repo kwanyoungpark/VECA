@@ -24,10 +24,10 @@ FRAME_SKIP = 1
 
 class Environment(EnvModule):
     def __init__(self,task, num_envs, args, seeds,
-            remote_env, ip, port
+            remote_env, port
             ):
         EnvModule.__init__(self, task, num_envs,args, seeds,
-            remote_env, ip, port,
+            remote_env, port,
             exec_path_win = "veca\\env_manager\\bin\\mazenav\\VECAUnityApp.exe",
             download_link_win = "https://drive.google.com/uc?export=download&id=17jIHlL7NMIAW_32ZzgZkNr0DGugkY3o8",
             exec_path_linux = "./veca/env_manager/bin/mazenav/mazenav.x86_64",
