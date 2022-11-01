@@ -158,10 +158,10 @@ class EnvOrchestrator():
 
     def step(self, action):
         for i in range(self.NUM_ENVS):
-            s, e = 4*i*(self.AGENTS_PER_ENV*self.ENVS_PER_ENV*self.action_space),4*(i+1)*(self.AGENTS_PER_ENV*self.ENVS_PER_ENV*self.action_space)
+            #s, e = i*(self.AGENTS_PER_ENV*self.ENVS_PER_ENV*self.action_space),(i+1)*(self.AGENTS_PER_ENV*self.ENVS_PER_ENV*self.action_space)
             #self.envs[i].send_action(action)
-            self.envs[i].send_action(action[s:e])
-        self.get_observation()
+            self.envs[i].send_action(action[i * self.ENVS_PER_ENV:i+1 * self.ENVS_PER_ENV])
+        return self.get_observation()
     
     def get_observation(self):
         storage = []
@@ -175,7 +175,10 @@ class EnvOrchestrator():
                 if key not in collate: collate[key] = []
                 collate[key].append(value)
         for key, valuelist in collate.items():
-            collate[key] = np.concatenate(valuelist)
+            if isinstance(valuelist[0], np.ndarray): # NDARRAY
+                collate[key] = np.concatenate(valuelist)
+            else: # PRIMITIVE
+                collate[key] = np.array(valuelist)
         return collate
 
     def reset(self, mask):

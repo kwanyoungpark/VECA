@@ -90,8 +90,8 @@ class EnvModule():
             raise
 
     def send_action(self, action):
-        action = np.reshape(action, [self.num_envs, self.agents_per_env, self.action_space])
-        action = np.array(action).astype(np.float32)
+        action = np.reshape(action, [self.num_envs, self.agents_per_env, self.action_space]).astype(np.float32)
+        #action = np.array(action).astype(np.float32)
         request(self.conn, STATUS.STEP, {"action":action})
         
         #packet = build_packet(STATUS.STEP, [action.tobytes(),])

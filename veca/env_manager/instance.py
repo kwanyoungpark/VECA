@@ -33,9 +33,9 @@ class UnityInstance():
             print(data["help"])
             raise HelpException()
         elif status == STATUS.INIT:
-            self.AGENTS_PER_ENV = data["agents_per_env"][0]
+            self.AGENTS_PER_ENV = data["agents_per_env"]
             self.NUM_AGENTS = self.AGENTS_PER_ENV * num_envs
-            self.action_space = data["action_length"][0]
+            self.action_space = data["action_length"]
         else:
             raise NotImplementedError()
 

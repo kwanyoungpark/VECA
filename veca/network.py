@@ -94,7 +94,7 @@ str_npType = {
     "byte":np.int8, "char":np.uint16, "short":np.int16, "int":np.int32, "long":np.int64, "float":np.float32, "double":np.float64
 }
 npType_str = {np.dtype(k):v for (k, v) in {
-    np.int8: "sbyte", np.uint8: "byte",
+    np.int8: "byte", np.uint8: "byte",
     np.int16: "short", np.uint16: "char", 
     np.int32: "int", 
     np.int64: "long", 
@@ -104,9 +104,12 @@ npType_str = {np.dtype(k):v for (k, v) in {
 Primitive_str = {
     int: "int", float: "float"
 }
+str_Primitive = {
+    "int": int, "byte": lambda x: np.array([x],np.uint8), "float": float
+}
 
 base64_ascii_encode = lambda t:  base64.b64encode(t).decode("ascii")
-base64_ascii_decode = lambda t:  base64.b64decode(t[0].encode('ascii'))
+base64_ascii_decode = lambda t:  base64.b64decode(t.encode('ascii'))
 
 def _encode(x) -> Tuple[str,str]:
     
@@ -116,11 +119,9 @@ def _encode(x) -> Tuple[str,str]:
         if all([isinstance(e, str) for e in x]):
             return "string[]", "#".join(x)
     elif isinstance(x,np.ndarray):
-        print(x.dtype)
-        print(type(x.dtype))
-        return "/".join(["array", npType_str[x.dtype], str(x.shape)]),  base64_ascii(x.tobytes())
+        return "/".join(["array", npType_str[x.dtype], str(x.shape)]),  base64_ascii_encode(x.tobytes())
     elif any([isinstance(x, t) for t in [int, float]]):
-        return "primitive/" + Primitive_str[type(x)] , base64_ascii(np.array([x]).tobytes())
+        return "primitive/" + Primitive_str[type(x)] , base64_ascii_encode(np.array([x]).tobytes())
     else:
         raise NotImplementedError("Not Implemented for type" + str(type(x)))
     '''
@@ -164,11 +165,9 @@ def _protocol_encode(data:dict):
     metadata = {}
     
     for key, value in data.items():
-        print("Key:", key, "value:", value)
         type_enc, value_enc = _encode(value)
         output[key] = value_enc
         metadata[key] = type_enc
-        print(value,"->", type_enc, value_enc)
 
     return metadata, output
 
@@ -186,7 +185,7 @@ def _decode(x, api) :
         return np.frombuffer(base64_ascii_decode(x), dtype).reshape(shape)
     elif ctype == "primitive":
         dtype = str_npType[api[1]]
-        return np.frombuffer(base64_ascii_decode(x), dtype)[0]
+        return str_Primitive[api[1]](np.frombuffer(base64_ascii_decode(x), dtype)[0])
     else:
         raise NotImplementedError("Not implemented for type:" + ctype)
 
