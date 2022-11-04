@@ -37,7 +37,7 @@ and then execute
 ```
 python example_remoteenv.py   # On the machine you want to execute the training algorithm
 ```
-Make sure that the `port` of `example_envorchestrator.py` is exposed for remote access.
+Make sure that the `port` of `example_remoteenv.py` is exposed for remote access.
 
 4. For the list of currently supported tasks, please refer to the `example.py` script for more information.
 
