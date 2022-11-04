@@ -157,14 +157,16 @@ class EnvOrchestrator():
     def step(self, action):
         for i in range(self.NUM_ENVS):
             self.envs[i].send_action(action[i * self.ENVS_PER_ENV:i+1 * self.ENVS_PER_ENV])
+        
         return self.get_observation()
     
     def get_observation(self):
         storage = []
         for i in range(self.NUM_ENVS):
             status, metadata, data = self.envs[i].get_observation()
-            storage.append((status, metadata, data))
+            storage.append((status, metadata, data))        
         
+        start = time.time()
         collate = {}
         for _,_,data in storage:
             for key,value in data.items():
@@ -172,7 +174,7 @@ class EnvOrchestrator():
                 collate[key].append(value)
         for key, valuelist in collate.items():
             if isinstance(valuelist[0], np.ndarray): # NDARRAY
-                collate[key] = np.concatenate(valuelist)
+                collate[key] = np.stack(valuelist)
             elif isinstance(valuelist[0], str):
                 collate[key] = valuelist
             else : # PRIMITIVE

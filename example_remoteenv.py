@@ -7,12 +7,12 @@ if __name__=="__main__":
     
     print(veca.gym.list_tasks())                        # List available VECA tasks
 
-    num_envs = 1
+    num_envs = 3
 
     env = veca.gym.make(
-        task = "kicktheballrandomscene",                    # VECA task name
+        task = "cognianav",                    # VECA task name
         num_envs = num_envs,                                # Number of parallel environment instances to execute
-        args = ["-train", "-timeout", "-1"],                # VECA task additional arguments
+        args = ["-train"],                # VECA task additional arguments
         seeds = random.sample(range(0, 2000), num_envs),    # seeds per env instances
         remote_env = True,                                  # Whether to use the Environment Orchestrator process at a remote server. If True, the orchestrator's ip and port should be given.               
         port= 8872,                                         # Exposed port of VECA GYM API
@@ -26,6 +26,7 @@ if __name__=="__main__":
         action = np.random.rand(num_envs, action_dim) * 2 - 1
         obs, reward, done, infos = env.step(action)
         print("Env Step")
+        print("Env infos:", infos.keys())
         if any(done):
             env.reset()
     

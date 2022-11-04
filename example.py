@@ -1,17 +1,19 @@
 import numpy as np
 import veca.gym
 import random, time
+import matplotlib.pyplot as plt
+import os, subprocess
 
 if __name__=="__main__":
     
     print(veca.gym.list_tasks())                        # List available VECA tasks
 
-    num_envs = 2
+    num_envs = 1
 
     env = veca.gym.make(
-        task = "cognianav",                                 # VECA task name
+        task = "objectnav",                                 # VECA task name
         num_envs = num_envs,                                # Number of parallel environment instances to execute
-        args = ["--train", "--fullscreen"],                   # VECA task additional arguments,
+        args = ["--train", "--useaudio"],                   # VECA task additional arguments. Append "--help" to list valid arguments.
         seeds = random.sample(range(0, 2000), num_envs),    # seeds per env instances
         remote_env = False                                  # Whether to use the Environment Orchestrator process at a remote server.
         )
@@ -23,9 +25,7 @@ if __name__=="__main__":
     for i in range(100):
         action = np.random.rand(num_envs, action_dim) * 2 - 1
         obs, reward, done, infos = env.step(action)
-        print("Env Step:", obs['agent/img'].shape,obs['agent/wav'].shape)
-        #print("Env infos:", infos['agent/Topview'].shape,infos['agent/BirdeyeView'].shape, infos['agent/Recwav'].shape )
-        time.sleep(1)
+        print("Env infos:", infos.keys(), obs.keys() )
         if any(done):
             env.reset()
     

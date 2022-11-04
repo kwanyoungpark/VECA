@@ -66,7 +66,6 @@ def make(task: str, num_envs: int, args: 'list[str]', seeds:Optional['list[int]'
     print("Imported " ,task, "module")
 
     if seeds is not None: assert len(seeds) == num_envs, "If using seeds, it should be same length as num_envs"
-    if remote_env: assert ip is not None, "If using remote env orchestrator, its IP and port should be given"
 
     return env(
             task = task,
