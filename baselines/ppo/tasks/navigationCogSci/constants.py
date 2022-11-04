@@ -1,0 +1,8 @@
+VISION = True
+AUDIO = False
+SIM = 'VECA'
+MODE = 'CONT'
+IMG_H, IMG_W = 84, 84
+NUM_TIME = 1
+FRAME_SKIP = 1
+

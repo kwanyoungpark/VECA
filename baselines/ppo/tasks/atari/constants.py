@@ -1,0 +1,12 @@
+VISION = True
+AUDIO = False
+SIM = 'ATARI'
+MODE = 'DISC'
+GAME = 'Breakout'
+#GAME = 'Pong'
+ACTION_LENGTH = 4
+RGB = False
+IMG_CHANNEL = 12 if RGB else 4
+IMG_H, IMG_W = 84, 84
+NUM_TIME = 1
+FRAME_SKIP = 1

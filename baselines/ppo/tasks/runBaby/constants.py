@@ -1,0 +1,6 @@
+SIM = 'VECA'
+MODE = 'CONT'
+NUM_TIME = 1
+FRAME_SKIP = 1
+TACTILE = True
+

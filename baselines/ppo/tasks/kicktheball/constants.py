@@ -1,0 +1,13 @@
+VISION = True
+AUDIO = True
+SIM = 'VECA'
+MODE = 'CONT'
+if MODE == 'DISC':
+    ACTION_LENGTH = 3
+else:
+    ACTION_LENGTH = 2
+RGB = False
+IMG_CHANNEL = 6 if RGB else 2
+IMG_H, IMG_W = 84, 84
+NUM_TIME = 1
+FRAME_SKIP = 1
