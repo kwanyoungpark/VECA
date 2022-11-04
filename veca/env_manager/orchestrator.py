@@ -82,7 +82,8 @@ class EnvOrchestrator():
                     print(exec_dir)
                 if not os.path.exists(self.exec_str):
                     raise ValueError('CANNOT DOWNLOAD TASK EXECUTABLE.')
-                os.chmod(packet["exec_path_linux"], os.stat(packet["exec_path_linux"]).st_mode | stat.S_IEXEC)
+                if "Linux" in cur_os:
+                    os.chmod(packet["exec_path_linux"], os.stat(packet["exec_path_linux"]).st_mode | stat.S_IEXEC)
         except Exception as ex:
             self.close()
             print(ex)

@@ -20,7 +20,7 @@ class Environment(EnvModule):
         EnvModule.__init__(self, task, num_envs, args, seeds,
             remote_env, port,
             exec_path_win = "veca\\env_manager\\bin\\cognianav\\VECAUnityApp.exe",
-            download_link_win = "https://drive.google.com/uc?export=download&id=",
+            download_link_win = "https://drive.google.com/uc?export=download&id=1FND5os01gyCshwhwU9jjAZ2QdAsK66fb",
             exec_path_linux = "./veca/env_manager/bin/cognianav/cogscinav.x86_64",
             download_link_linux = "https://drive.google.com/uc?export=download&id="
             )
