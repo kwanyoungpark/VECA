@@ -269,35 +269,25 @@ class Model():
                 self.accA, self.init_accA, self.optA, self.gradA = makeOptimizer(self.lrA, self.loss, decay = False)
             
             # tf.Summary & Writer
-            summaries = []
-            summaries.append(tf.summary.scalar('helper_reward', tf.reduce_mean(self.helper_reward)))
-            summaries.append(tf.summary.scalar('agent_loss', self.loss_Agent))
-            summaries.append(tf.summary.scalar('expected_reward(V)', tf.reduce_mean(self.V0)))
-            summaries.append(tf.summary.scalar('critic_loss', self.loss_Critic))
-            summaries.append(tf.summary.scalar('relative_critic_loss', self.loss_Critic / tf.reduce_mean(self.reward)))
-            summaries.append(tf.summary.scalar('V0', tf.reduce_mean(self.V0)))
-            summaries.append(tf.summary.scalar('clipfrac', self.clipfrac))
-            summaries.append(tf.summary.scalar('raw_reward', tf.reduce_mean(self.raw_reward)))
-            summaries.append(tf.summary.scalar('reward', tf.reduce_mean(self.reward)))
-            summaries.append(tf.summary.scalar('rewardStd', self.rewardStd))
-            summaries.append(tf.summary.scalar('lr', self.lrA))
-            summaries.append(tf.summary.scalar('entropy', self.entropy))
-            summaries.append(tf.summary.scalar('approxkl', self.approxkl))
-            summaries.append(tf.summary.scalar('cumulative_reward', self.tot_reward))
-            if 'obj' in env.observation_space:
-                 summaries.append(tf.summary.image('objvec', tf.cast(255*tf.reshape(self.Mobj, [1, NUM_CHUNKS*BATCH_SIZE, NUM_OBJS, 1]), tf.uint8)))
-            summaries.append(tf.summary.scalar('loss', self.loss))
+            summaries = {
+                    'helper_reward': tf.reduce_mean(self.helper_reward),
+                    'agent_loss': self.loss_Agent,
+                    'expected_reward(V)': tf.reduce_mean(self.V0),
+                    'critic_loss': self.loss_Critic,
+                    'relative_critic_loss': self.loss_Critic / tf.reduce_mean(self.reward),
+                    'V0': tf.reduce_mean(self.V0),
+                    'clipfrac': self.clipfrac,
+                    'raw_reward': tf.reduce_mean(self.raw_reward),
+                    'reward': tf.reduce_mean(self.reward),
+                    'rewardStd': self.rewardStd,
+                    'lr': self.lrA,
+                    'entropy': self.entropy,
+                    'approxkl': self.approxkl,
+                    'cumulative_reward': self.tot_reward,
+                    'loss': self.loss,
+                }
+            summaries = [tf.summary.scalar(k, v) for k,v in summaries]
             print(tf.trainable_variables())
-            '''
-            train_vars = tf.trainable_variables(scope = name + '/targetA')
-            print(train_vars)
-            for var in train_vars:
-                summaries += variable_summaries(var)
-            train_vars = tf.trainable_variables(scope = name + '/targetC')
-            print(train_vars)
-            for var in train_vars:
-                summaries += variable_summaries(var)
-            '''
             self.merge = tf.summary.merge(summaries)
             self.writer = tf.summary.FileWriter('./log/' + env.name + f'_Sub_{self.tag}/', self.sess.graph)
 
@@ -333,6 +323,8 @@ class Model():
 
     def get_action(self, data):
         # Reshape, Transpose & Collect obs as dict
+        dict_inf = {self.data_inf[k]:data[k] for k in self.data_inf.keys()}
+        '''
         dict_all = {}
         if 'image' in self.env.observation_space:
             IMG_C, IMG_H, IMG_W = self.env.observation_space['image']
@@ -361,18 +353,19 @@ class Model():
             state = np.reshape(state, [-1, STATE_LENGTH])
             #print(np.var(state, axis = 1))
             dict_all.update({self.Istate: state})
+        '''
 
         # Policy Action Inference
-        myu, sigma = self.sess.run(self.inferA, feed_dict = dict_all)
+        myu, sigma = self.sess.run(self.inferA, feed_dict = dict_inf)
         action = np.random.normal(myu, sigma)
         if RNN:
-            state = self.sess.run(self.inferS, feed_dict = dict_all)
+            state = self.sess.run(self.inferS, feed_dict = dict_inf)
             return myu, sigma, action, state
         return myu, sigma, action
 
     def make_batch(self, data, ent_coef, add_merge = False, num_chunks = None, update_gpu = False, lr = None):
         # Obs Dict to variables
-        NUM_AGENTS = self.env.num_envs * self.env.agents_per_env
+        '''
         if 'image' in self.env.observation_space:
             img0 = data['img0']
             img1 = data['img1']
@@ -399,11 +392,11 @@ class Model():
         if RNN:
             state0 = data['state0']
             state1 = data['state1']
-
-        
+        '''
 
         # Reshape & Transopse & memory_op_small
-        dict_mem = {}
+        dict_mem = {self.data_place[k]:data[k] for k in data.keys() if "prev/" in k }
+        '''
         if 'image' in self.env.observation_space:
             img0 = np.transpose(np.reshape(img0, [TIME_STEP, NUM_AGENTS, IMG_C, IMG_H, IMG_W]), [1, 0, 3, 4, 2])
             img1 = np.transpose(np.reshape(img1, [TIME_STEP, NUM_AGENTS, IMG_C, IMG_H, IMG_W]), [1, 0, 3, 4, 2])
@@ -437,11 +430,14 @@ class Model():
             state0 = np.reshape(state0, [NUM_AGENTS*TIME_STEP, STATE_LENGTH])
             state1 = np.reshape(state1, [NUM_AGENTS*TIME_STEP, STATE_LENGTH])
             dict_mem.update({self._state: state0})
+        '''
         self.sess.run(self.memory_op_small, feed_dict = dict_mem)
         
         # Value inference & memory_op_small 
+        NUM_AGENTS = self.env.num_envs * self.env.agents_per_env
         T = TIME_STEP
-        dict_infer = {}
+        dict_infer = {self.data_inf[k]:[data[k][(i+1)*T-1] for i in range(NUM_AGENTS)] for k in data.keys() if "cur/" in k }
+        '''
         if 'image' in self.env.observation_space:
             lastimg = [img1[(i+1)*T-1] for i in range(NUM_AGENTS)]
             dict_infer.update({self.Iimg0:lastimg})
@@ -457,6 +453,7 @@ class Model():
         if RNN:
             laststate = [state1[(i+1)*T-1] for i in range(NUM_AGENTS)]
             dict_infer.update({self.Istate:laststate})
+        '''
         V = self.sess.run(self.inferV0, feed_dict = dict_infer)
         
         # Policy Computation
@@ -532,7 +529,10 @@ class Model():
         actionReal = np.reshape(actionReal, [NUM_AGENTS * TIME_STEP, ACTION_LENGTH])
 
         if update_gpu:
-            dict_all = {}
+            dict_all = {self.data_place[k]:data[k] for k in self.data_place.keys() if "prev/" in k}
+            dict_all.update{{self._myu:myu, self._sigma:sigma, self._advs: advs, 
+                self._Vtarget: Vtarget, self._oldV0: V0, self._actionReal: actionReal}}
+            '''
             if 'image' in self.env.observation_space:
                 dict_all.update({self._img0:img0})
             if 'audio' in self.env.observation_space:
@@ -543,8 +543,9 @@ class Model():
                 dict_all.update({self._touch:touch0})
             if RNN:
                 dict_all.update({self._state:state0})
-            dict_all.update({self._myu:myu, self._sigma:sigma})
-            dict_all.update({self._advs: advs, self._Vtarget: Vtarget, self._oldV0: V0, self._actionReal: actionReal})
+            dict_all.update()
+            dict_all.update({})
+            '''
             self.sess.run(self.memory_op, feed_dict = dict_all)
         if add_merge:
             dict_all = {self.reward: reward, self.helper_reward:helper_reward, self.raw_reward: raw_reward, self.rewardStd: rewardStd, self.tot_reward: tot_reward, self.lrA:lr, self.ent_coef:ent_coef}
