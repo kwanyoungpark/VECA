@@ -16,38 +16,13 @@ PORT = 10000
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
-envs = []
-for i, TASK in enumerate(TASKS):
-    if SIM == 'VECA':
-        if TASK == 'Navigation':
-            from tasks.navigation.navigationEnv import Environment
-        elif TASK == 'NavigationCogSci':
-            from tasks.navigationCogSci.navigationEnv import Environment
-        elif TASK == 'KickTheBall':
-            from tasks.kicktheball.kickTheBallEnv import Environment
-        elif TASK == 'MANavigation':
-            from tasks.MANavigation.navigationEnv import Environment
-        elif TASK == 'Transport':
-            from tasks.transport.transportEnv import Environment
-        elif TASK == 'MazeNav':
-            from tasks.MazeNav.navigationEnv import Environment
-        elif TASK == 'RunBaby':
-            from tasks.runBaby.runBabyEnv import Environment
-        elif TASK == 'COGNIANav':
-            from tasks.COGNIANav.COGNIADemoEnv import Environment
-        env = Environment(num_envs = NUM_ENVS, port = PORT+ i)
-    elif SIM == 'ATARI':
-        from tasks.atari.atariEnv import Environment
-        env = Environment(num_envs = NUM_ENVS, env_name = TASK)
-    elif SIM == 'CartPole':
-        from tasks.cartpole.cartpoleEnv import Environment
-        env = Environment(num_envs = NUM_ENVS)
-    elif SIM == 'Pendulum':
-        from tasks.pendulum.pendulumEnv import Environment
-        env = Environment(num_envs = NUM_ENVS)
-    envs.append(env)
+from tasks.COGNIANav.COGNIADemoEnv import Environment
+envs = [Environment(task = TASK, num_envs = NUM_ENVS, port = PORT+ i) for i, TASK in enumerate(TASKS)]
 
-model = MTLModel(envs, tag)
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session()
+model = MTLModel(envs, sess, tag)
 #model.load('model/PPO_mtl_model_11234/-3320000', global_step = 3320000)
 
 TRAIN_STEP = 2000000

@@ -3,14 +3,14 @@ from utils import *
 import numpy as np
 import sys
 import os
-import cv2 
 import time
 from constants import *
 from agents import CriticPPO as Critic
 from agents import AgentContinuousPPO as Agent
+from munch import Munch
 
 class Model():
-    def __init__(self, env, sess, encoder, encoder0, tag,name = None): 
+    def __init__(self, env, sess, encoder, encoder0, obs_sample, tag,name = None): 
         self.env = env
         self.tag = tag
         self.sess = sess
@@ -24,6 +24,7 @@ class Model():
             BATCH_SIZE = 256
         else:
             BATCH_SIZE = (TIME_STEP * NUM_AGENTS) // NUM_CHUNKS
+        '''
         if 'image' in self.env.observation_space:
             IMG_C, IMG_H, IMG_W = self.env.observation_space['image']
         if 'audio' in self.env.observation_space:
@@ -34,6 +35,18 @@ class Model():
                 NUM_OBJS = env.observation_space['obj']
         if 'touch' in self.env.observation_space:
             TACTILE_LENGTH = self.env.observation_space['touch']
+        '''
+
+        obshape = Munch({k:v.shape for k,v in obs_sample.items()})
+        data_struct = Munch({
+            "myu": (NUM_AGENTS, ACTION_LENGTH),
+            "sigma": (NUM_AGENTS, ACTION_LENGTH),
+            "actionReal": (NUM_AGENTS, ACTION_LENGTH),
+            "advs": (NUM_AGENTS, 1),
+            "Vtarget": (NUM_AGENTS, 1),
+            "oldV0": (NUM_AGENTS, 1),
+        })
+        data_struct.update(obshape)
 
         
         with tf.variable_scope(self.name):
@@ -47,6 +60,7 @@ class Model():
             self.ent_coef = tf.placeholder(tf.float32)
 
             # Inference placeholders
+            '''
             if 'image' in env.observation_space:
                 self.Iimg0 = tf.placeholder(tf.float32, shape = [NUM_AGENTS, IMG_H, IMG_W, IMG_C])
             if 'audio' in env.observation_space:
@@ -60,8 +74,12 @@ class Model():
                 self.Itouch = tf.placeholder(tf.float32, shape = [NUM_AGENTS, TACTILE_LENGTH])
             if RNN:
                 self.Istate = tf.placeholder(tf.float32, shape = [NUM_AGENTS, STATE_LENGTH])
+            '''
+            self.data_inf = {k : tf.placeholder(tf.float32, shape = v) for k,v in obshape.items()}
 
             # Placeholders
+            self.data_place = {k : tf.placeholder(tf.float32, shape = (TIME_STEP,) + v) for k,v in data_struct.items()}
+            '''
             if 'image' in env.observation_space:
                 self._img0 = tf.placeholder(tf.float32, shape = [NUM_AGENTS*TIME_STEP, IMG_H, IMG_W, IMG_C])
             if 'audio' in env.observation_space:
@@ -83,8 +101,11 @@ class Model():
             self._advs = tf.placeholder(tf.float32, shape = [NUM_AGENTS*TIME_STEP, 1])
             self._Vtarget = tf.placeholder(tf.float32, shape = [NUM_AGENTS*TIME_STEP, 1])
             self._oldV0 = tf.placeholder(tf.float32, shape = [NUM_AGENTS*TIME_STEP, 1])
+            '''
 
             # Data storage(Only used in training)
+            self.data_mem = {k : tf.get_variable("mem/" + k,tf.float32, shape = (NUM_CHUNKS, BATCH_SIZE) + v[1:]) for k,v in data_struct.items()}
+            '''
             if 'image' in env.observation_space:
                 self.Mimg0 = tf.get_variable("Mimg0", [NUM_CHUNKS, BATCH_SIZE, IMG_H, IMG_W, IMG_C], trainable = False)
             if 'audio' in env.observation_space:
@@ -105,8 +126,11 @@ class Model():
             self.Madvs = tf.get_variable("Madvs", [NUM_CHUNKS, BATCH_SIZE, 1], trainable = False)
             self.MVtarget = tf.get_variable("MVtarget", [NUM_CHUNKS, BATCH_SIZE, 1], trainable = False)
             self.MoldV0 = tf.get_variable("MoldV0", [NUM_CHUNKS, BATCH_SIZE, 1], trainable = False)
+            '''
            
-            # Real values
+            # Real values 
+            self.data_real = {k : tf.get_variable("real/" + k,tf.float32, shape = (BATCH_SIZE,) + v) for k,v in data_struct.items()}
+            '''
             if 'image' in env.observation_space:
                 self.img0 = tf.get_variable("img0", [BATCH_SIZE, IMG_H, IMG_W, IMG_C], trainable = False)
             if 'audio' in env.observation_space:
@@ -127,7 +151,8 @@ class Model():
             self.advs = tf.get_variable("advs", [BATCH_SIZE, 1], trainable = False)
             self.Vtarget = tf.get_variable("Vtarget", [BATCH_SIZE, 1], trainable = False)
             self.oldV0 = tf.get_variable("oldV0", [BATCH_SIZE, 1], trainable = False)
-
+            '''
+            '''
             self._data, self.Mdata, self.data = [], [], []
             num_input = 0
             if 'image' in env.observation_space:
@@ -160,20 +185,21 @@ class Model():
             self._data += [self._actionReal, self._advs, self._Vtarget, self._oldV0]
             self.Mdata += [self.MactionReal, self.Madvs, self.MVtarget, self.MoldV0]
             self.data += [self.actionReal, self.advs, self.Vtarget, self.oldV0]
+            '''
 
             # Define Memory & Data Operation
             self.memory_op_small = [
-                tf.assign(self.Mdata[i], tf.reshape(self._data[i], self.Mdata[i].shape), validate_shape = True)
-                for i in range(num_input)
+                tf.assign(self.data_mem[key], tf.reshape(self.data_place[key], self.data_mem[key].shape), validate_shape = True)
+                for key in obshape.keys()
             ]
             self.memory_op = [
-                tf.assign(self.Mdata[i], tf.reshape(self._data[i], self.Mdata[i].shape), validate_shape = True)
-                for i in range(len(self._data))
+                tf.assign(self.data_mem[key], tf.reshape(self.data_place[key], self.data_mem[key].shape), validate_shape = True)
+                for key in data_struct.keys()
             ]
             self.data_op = [
                 [
-                    tf.assign(self.data[j], self.Mdata[j][i], validate_shape = True) 
-                    for j in range(len(self.data))
+                    tf.assign(self.data_real[key], self.data_mem[key][i], validate_shape = True) 
+                    for key in data_struct.keys()
                 ]
                 for i in range(NUM_CHUNKS)
             ]
@@ -191,6 +217,8 @@ class Model():
 
 
             # Accumulate different modality in single input
+            self.Idat, self.dat = self.data_inf, {k:self.data_real[k] for k in obshape.keys()}
+            '''
             self.Idat, self.dat = [], []
             if 'image' in env.observation_space:
                 self.Idat.append(self.Iimg0)
@@ -219,6 +247,7 @@ class Model():
             if RNN:
                 self.Idat.append(self.Istate)
                 self.dat.append(self.state)
+            '''
 
             # Forward Propagation 
             self.inferA = self.brain0.forward(self.Idat)
@@ -259,6 +288,7 @@ class Model():
                  summaries.append(tf.summary.image('objvec', tf.cast(255*tf.reshape(self.Mobj, [1, NUM_CHUNKS*BATCH_SIZE, NUM_OBJS, 1]), tf.uint8)))
             summaries.append(tf.summary.scalar('loss', self.loss))
             print(tf.trainable_variables())
+            '''
             train_vars = tf.trainable_variables(scope = name + '/targetA')
             print(train_vars)
             for var in train_vars:
@@ -267,6 +297,7 @@ class Model():
             print(train_vars)
             for var in train_vars:
                 summaries += variable_summaries(var)
+            '''
             self.merge = tf.summary.merge(summaries)
             self.writer = tf.summary.FileWriter('./log/' + env.name + f'_Sub_{self.tag}/', self.sess.graph)
 
@@ -561,10 +592,3 @@ class Model():
         print('reverting network A and C...')
         self.sess.run(self.revert_op)
         print('reverted!')
-
-    def save(self, num):
-        self.saver.save(self.sess, f'./model/{METHOD}_submodel_{self.tag}', global_step = self.global_step)
-
-    def load(self, model_name, global_step):
-        self.loader.restore(self.sess, model_name)
-        self.global_step = global_step
