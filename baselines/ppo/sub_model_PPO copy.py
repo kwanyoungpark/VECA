@@ -7,18 +7,18 @@ from agents import AgentContinuousPPO as Agent
 from munch import Munch
 
 class Model():
-    def __init__(self, env, sess, timestep, num_chunks, encoder, encoder0, obs_sample, tag,name = None): 
+    def __init__(self, env, sess, timestep, num_batches, encoder, encoder0, obs_sample, tag,name = None): 
         self.num_agents = env.num_agents
         self.action_space = env.action_space
         self.tag = tag
         self.sess = sess
         self.timestep = timestep
-        self.num_chunks = num_chunks
+        self.num_batches = num_batches
         if name is None: name = env.name
-        if self.num_chunks is None:
+        if self.num_batches is None:
             BATCH_SIZE = 256
         else:
-            BATCH_SIZE = (self.timestep * self.num_agents) // self.num_chunks
+            BATCH_SIZE = (self.timestep * self.num_agents) // self.num_batches
         
         obshape = Munch({k:v.shape for k,v in obs_sample.items()})
         outshape = Munch({
@@ -46,7 +46,7 @@ class Model():
 
             self.placeholders = {k : tf.placeholder(tf.float32, shape = (self.timestep,) + v) for k,v in tensor_shapes.items()}
 
-            self.memory = {k : tf.get_variable("mem/" + k,tf.float32, shape = (self.num_chunks, BATCH_SIZE) + v[1:]) for k,v in tensor_shapes.items()}
+            self.memory = {k : tf.get_variable("mem/" + k,tf.float32, shape = (self.num_batches, BATCH_SIZE) + v[1:]) for k,v in tensor_shapes.items()}
            
             self.data_real = {k : tf.get_variable("real/" + k,tf.float32, shape = (BATCH_SIZE,) + v[1:]) for k,v in tensor_shapes.items()}
 
@@ -64,23 +64,20 @@ class Model():
                     tf.assign(self.data_real[key], self.memory[key][i], validate_shape = True) 
                     for key in tensor_shapes.keys()
                 ]
-                for i in range(self.num_chunks)
+                for i in range(self.num_batches)
             ]
             
             # Model Init 
-            self.enc = encoder
-            self.brain = Agent('mainA', self.enc, self.env.action_space)
-            self.critic = Critic('mainC', self.enc)
-            self.enc0 = encoder0
-            self.brain0 = Agent('targetA', self.enc0, self.env.action_space)
-            self.critic0 = Critic('targetC', self.enc0)
+            self.brain = Agent('mainA', encoder, self.env.action_space)
+            self.critic = Critic('mainC', encoder)
+            self.brain0 = Agent('targetA', encoder0, self.env.action_space)
+            self.critic0 = Critic('targetC', encoder0)
 
             # Forward Propagation 
             self.dat = {k:self.data_real[k] for k in obshape.keys()}
             self.inferA = self.brain0.forward(self.placeholders_inf)
             self.inferV0 = self.critic0.forward(self.placeholders_inf)
-            if RNN:
-                self.inferS = self.enc0.forward(self.placeholders_inf)
+            if RNN: self.inferS = encoder0.forward(self.placeholders_inf)
             self.oldA = self.brain0.forward(self.dat)
             self.A = self.brain.forward(self.dat)
             self.V0 = self.critic0.forward(self.dat)
@@ -95,83 +92,54 @@ class Model():
             with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
                 self.accA, self.init_accA, self.optA, self.gradA = makeOptimizer(self.lrA, self.loss, decay = False)
             
-            # tf.Summary & Writer
-            summaries = {
-                    'helper_reward': tf.reduce_mean(self.helper_reward),
-                    'agent_loss': self.loss_Agent,
-                    'expected_reward(V)': tf.reduce_mean(self.V0),
-                    'critic_loss': self.loss_Critic,
-                    'relative_critic_loss': self.loss_Critic / tf.reduce_mean(self.reward),
-                    'V0': tf.reduce_mean(self.V0),
-                    'clipfrac': self.clipfrac,
-                    'raw_reward': tf.reduce_mean(self.raw_reward),
-                    'reward': tf.reduce_mean(self.reward),
-                    'rewardStd': self.rewardStd,
-                    'lr': self.lrA,
-                    'entropy': self.entropy,
-                    'approxkl': self.approxkl,
-                    'cumulative_reward': self.tot_reward,
-                    'loss': self.loss,
-                }
-            summaries = [tf.summary.scalar(k, v) for k,v in summaries]
-            print(tf.trainable_variables())
-            self.merge = tf.summary.merge(summaries)
-            self.writer = tf.summary.FileWriter('./log/' + env.name + f'_Sub_{self.tag}/', self.sess.graph)
+            self.merge, self.writer = self._register_summaries()
 
-            self.copy_op = []
-            self.revert_op = []
-            main_varsA = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name+'/mainA')
-            target_varsA = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name+'/targetA')
-
-            for main_var, target_var in zip(main_varsA, target_varsA):
-                self.copy_op.append(target_var.assign(main_var.value()))
-                self.revert_op.append(main_var.assign(target_var.value()))
-
-            main_varsC = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name+'/mainC')
-            target_varsC = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name+'/targetC')
-
-            for main_var, target_var in zip(main_varsC, target_varsC):
-                self.copy_op.append(target_var.assign(main_var.value()))
-                self.revert_op.append(main_var.assign(target_var.value()))
+            self.copy_op, self.revert_op = [], []
+            for mainV, targetV in (('/mainA', '/targetA'), ('/mainC','/targetC')):
+                main_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name+mainV)
+                target_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=name+targetV)
+                for main_var, target_var in zip(main_vars, target_vars):
+                    self.copy_op.append(target_var.assign(main_var.value()))
+                    self.revert_op.append(main_var.assign(target_var.value()))
 
         self.sess.run([self.copy_op])
 
     def get_action(self, data):
         dict_inf = {self.placeholders_inf[k]:data[k] for k in self.placeholders_inf.keys()}
-
         myu, sigma = self.sess.run(self.inferA, feed_dict = dict_inf)
         action = np.random.normal(myu, sigma)
-        if RNN:
+        if not RNN:
+            return myu, sigma, action
+        else:
             state = self.sess.run(self.inferS, feed_dict = dict_inf)
             return myu, sigma, action, state
-        return myu, sigma, action
 
-    def make_batch(self, data, ent_coef, add_merge = False, num_chunks = None, update_gpu = False, lr = None):
+    def make_batch(self, data, ent_coef, add_merge = False, num_batches = None, update_gpu = False, lr = None):
         
-        # Value inference & store_obs_op 
-        dict_infer = {self.placeholders_inf[k]:data[k][-1]  for k in data.keys() if "cur/" in k }
-        V = self.sess.run(self.inferV0, feed_dict = dict_infer)
+        obs_infer = {self.placeholders_inf[k]:data[k][-1]  for k in data.keys() if "cur/" in k }
+        V = self.sess.run(self.inferV0, feed_dict = obs_infer)
         
-        dict_mem = {self.placeholders[k]:data[k] for k in data.keys() if "prev/" in k }
-        self.sess.run(self.store_obs_op, feed_dict = dict_mem)
-        # Policy Computation
+        obs_mem = {self.placeholders[k]:data[k] for k in data.keys() if "prev/" in k }
+        self.sess.run(self.store_obs_op, feed_dict = obs_mem)
         
         collate = []
-        for i in range(num_chunks):
+        for i in range(num_batches):
             self.sess.run(self.load_op[i])
             (myui, sigmai), V0i = self.sess.run([self.oldA, self.V0])
             collate.append((myui, sigmai, V0i))
-        myu, sigma, V0 = (np.array(x) for x in zip(*collate))
-        advs = np.zeros_like(V0)
+        myu, sigma, V0 = (np.array(x) for x in zip(*collate)) # N, B, ACT / N, B, 1
+        advs = np.zeros_like(V0) # N, CHK
+
+        # obs, obs_prev, V, myu, sigma, V0, advs, reward, helper_reward, raw_reward, done, cum_reward, Vtarget, actionReal
     
-        helper_reward, raw_reward = np.transpose(data['helper_reward'], [1, 0]), np.transpose(data['raw_reward'], [1, 0])
-        reward = helper_reward + raw_reward
+        helper_reward, raw_reward = data['helper_reward'], data['raw_reward'] #np.transpose(data['helper_reward'], [1, 0]), np.transpose(data['raw_reward'], [1, 0])
+        reward = helper_reward + raw_reward # TS, NA
 
-        done = np.transpose(data['done'], [1, 0])
+        done = data['done'] # TS, NA #np.transpose(data['done'], [1, 0]) # NA, TS
 
-        cum_reward = np.zeros_like(reward)
+        cum_reward = np.zeros_like(reward) # TS, NA 
         for i in range(self.num_agents):
-            done[i][-1] = reward[i][-1]
+            done[i][-1] = reward[i][-1] # THIS IS WEIRD
             for t in reversed(range(self.timestep-1)):
                 if done[i][t]:
                     cum_reward[i][t] = reward[i][t]
@@ -196,11 +164,11 @@ class Model():
                     delta = reward[i][t] + GAMMA * V0[i][t+1] - V0[i][t]
                     advs[i][t] = delta + GAMMA * LAMBDA * advs[i][t+1]
 
-        Vtarget = advs + V0
+        Vtarget = advs + V0 # NA, TS
 
         #Before gpu update
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
-        actionReal = np.transpose(data['action'], [1, 0, 2])
+        actionReal = np.transpose(data['action'], [1, 0, 2]) # NA, TS, ACT
 
         if update_gpu:
             dict_all = {self.placeholders[k]:data[k] for k in self.placeholders.keys() if "prev/" in k}
@@ -209,30 +177,48 @@ class Model():
             self.sess.run(self.store_op, feed_dict = dict_all)
         if add_merge:
             dict_all = {self.reward: reward, self.helper_reward:helper_reward, self.raw_reward: raw_reward, self.rewardStd: rewardStd, self.tot_reward: tot_reward, self.lrA:lr, self.ent_coef:ent_coef}
-            TlA, TlC, Tpg_loss, Tratio, Tloss = 0., 0., 0., 0., 0.
+            collate = []
             self.sess.run(self.init_accA)
-            for i in range(num_chunks):
+            for i in range(num_batches):
                 self.sess.run(self.load_op[i])
-                lA, lC, pg_loss, loss, ratio, _ = self.sess.run([self.loss_Agent, self.loss_Critic, self.pg_loss, self.loss, self.ratio, self.accA], feed_dict = {self.ent_coef:ent_coef})
-                TlA += lA / num_chunks
-                TlC += lC / num_chunks
-                Tpg_loss += pg_loss / num_chunks
-                Tloss += loss / num_chunks
-                Tratio = max(np.max(ratio), Tratio)
-
+                collate.append(self.sess.run([self.loss_Agent, self.loss_Critic, self.pg_loss, self.loss, self.ratio, self.accA], feed_dict = {self.ent_coef:ent_coef}))
+            TlA, TlC, Tpg_loss, Tloss, Tratio, _ = (x for x in zip(*collate)) # N, B, ACT / N, B, 1
             TgradA = self.sess.run(self.gradA)
-            print("Loss {:.5f} Aloss {:.5f} Closs {:.5f} Maximum ratio {:.5f} pg_loss {:.5f} grad {:.5f} lr {:.5f}".format(Tloss, TlA, TlC, Tratio, Tpg_loss, TgradA, lr))
 
-            return Tloss, TlA, TlC, Tratio, Tpg_loss, TgradA, dict_all 
+            return Tloss, TlA.mean(), TlC.mean(), Tratio.max(), Tpg_loss.mean(), TgradA, dict_all 
 
-    def trainA(self, lr, num_chunks = None, ent_coef = None):
+    def trainA(self, lr, num_batches = None, ent_coef = None):
         self.sess.run(self.init_accA)
         approxkl = 0.
-        for i in range(num_chunks):
+        for i in range(num_batches):
             self.sess.run(self.load_op[i])
             _, Tapproxkl = self.sess.run([self.accA, self.approxkl], feed_dict = {self.ent_coef:ent_coef})
-            approxkl += Tapproxkl / num_chunks
+            approxkl += Tapproxkl / num_batches
             if (i+1) % NUM_UPDATE == 0:
                 self.sess.run(self.optA, feed_dict = {self.lrA:lr, self.ent_coef:ent_coef})
                 self.sess.run(self.init_accA)
         return approxkl
+    def _register_summaries(self):
+        # tf.Summary & Writer
+        summaries = {
+                'helper_reward': tf.reduce_mean(self.helper_reward),
+                'agent_loss': self.loss_Agent,
+                'expected_reward(V)': tf.reduce_mean(self.V0),
+                'critic_loss': self.loss_Critic,
+                'relative_critic_loss': self.loss_Critic / tf.reduce_mean(self.reward),
+                'V0': tf.reduce_mean(self.V0),
+                'clipfrac': self.clipfrac,
+                'raw_reward': tf.reduce_mean(self.raw_reward),
+                'reward': tf.reduce_mean(self.reward),
+                'rewardStd': self.rewardStd,
+                'lr': self.lrA,
+                'entropy': self.entropy,
+                'approxkl': self.approxkl,
+                'cumulative_reward': self.tot_reward,
+                'loss': self.loss,
+            }
+        summaries = [tf.summary.scalar(k, v) for k,v in summaries]
+        print(tf.trainable_variables())
+        merge = tf.summary.merge(summaries)
+        writer = tf.summary.FileWriter('./log/' + f'_Sub_{self.tag}/', self.sess.graph)
+        return merge, writer

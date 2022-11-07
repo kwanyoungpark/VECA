@@ -66,7 +66,8 @@ class Model():
         summary = self.sess.run(self.merge)
         self.writer.add_summary(summary, global_step)
         for i, model in enumerate(self.models):
-            model.writer.add_summary(dict_all[i], global_step)
+            summary = self.sess.run(model.merge, feed_dict = dict_all[i])
+            model.writer.add_summary(summary, global_step)
 
     def trainA(self, lr, num_chunks = None, ent_coef = None):
         Tapproxkl = 0.
