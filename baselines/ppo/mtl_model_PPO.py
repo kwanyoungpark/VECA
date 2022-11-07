@@ -66,7 +66,7 @@ class Model():
         summary = self.sess.run(self.merge)
         self.writer.add_summary(summary, global_step)
         for i, model in enumerate(self.models):
-            model.debug_merge(dict_all[i], global_step)
+            model.writer.add_summary(dict_all[i], global_step)
 
     def trainA(self, lr, num_chunks = None, ent_coef = None):
         Tapproxkl = 0.
@@ -79,15 +79,13 @@ class Model():
         print('updating networks A and C...')
         self.sess.run(self.copy_op)
         for model in self.models:
-            model.updateNetwork()
-        print('updated!')
+            self.sess.run(model.copy_op)
 
     def revertNetwork(self):
         print('reverting network A and C...')
         self.sess.run(self.revert_op)
         for model in self.models:
-            model.revertNetwork()
-        print('reverted!')
+            self.sess.run(model.revert_op)
 
     def save(self, name, global_step):
         self.saver.save(self.sess, name, global_step = global_step)

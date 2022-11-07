@@ -19,7 +19,7 @@ class ReplayBuffer():
             self.storage.append(datadict)
        
 
-    def get(self, num = -1):
+    def get(self, num = -1): # list[timestep] ((NUM_AGENTS, *obs_shape))
         if num < 0:
             return self.storage
         else:

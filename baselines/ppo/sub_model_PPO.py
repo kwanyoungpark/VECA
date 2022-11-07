@@ -438,6 +438,9 @@ class Model():
             myu.append(myui)
             sigma.append(sigmai)
             V0.append(V0i)
+        myu = np.reshape(np.array(myu), [NUM_AGENTS*TIME_STEP, ACTION_LENGTH])
+        sigma = np.reshape(np.array(sigma), [NUM_AGENTS*TIME_STEP, ACTION_LENGTH])
+        V0 = np.reshape(np.array(V0), [NUM_AGENTS*TIME_STEP, 1])
         
         helper_reward, raw_reward = data['helper_reward'], data['raw_reward']
         helper_reward = np.transpose(np.reshape(helper_reward, [TIME_STEP, NUM_AGENTS]), [1, 0])

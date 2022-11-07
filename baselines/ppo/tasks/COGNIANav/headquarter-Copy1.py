@@ -14,12 +14,12 @@ class HeadQuarter():
     def restart(self):
         self.env.reset()
         obs,infos,reward,done = self.env.step(np.zeros([self.env.num_agents, self.env.action_space]))
-        self.add_replay(obs,reward,done)
+        self.add_replay(obs,reward,done, clear = True)
     
-    def add_replay(self, obs,reward,done):
+    def add_replay(self, obs,reward,done, clear):
         ddict = self.merge_dicts(obs, {"reward":reward}, {"done":done})
         for k, v in ddict.items():
-            if k not in self.cache:
+            if clear or (k not in self.cache):
                 self.cache[k] =[v] * self.timestep
             else:
                 self.cache[k] = self.cache[k][1:] + [v]
@@ -43,5 +43,5 @@ class HeadQuarter():
 
     def step(self, action):
         obs,infos,reward,done = self.env.step(self.filter_action(action))
-        self.add_replay(obs,reward,done)
+        self.add_replay(obs,reward,done, clear = False)
         return done
