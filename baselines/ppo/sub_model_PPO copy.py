@@ -122,82 +122,49 @@ class Model():
         obs_mem = {self.placeholders[k]:data[k] for k in data.keys() if "prev/" in k }
         self.sess.run(self.store_obs_op, feed_dict = obs_mem)
         
-        collate = []
-        for i in range(num_batches):
-            self.sess.run(self.load_op[i])
-            (myui, sigmai), V0i = self.sess.run([self.oldA, self.V0])
-            collate.append((myui, sigmai, V0i))
-        myu, sigma, V0 = (np.array(x) for x in zip(*collate)) # N, B, ACT / N, B, 1
-        advs = np.zeros_like(V0) # N, CHK
-
-        # obs, obs_prev, V, myu, sigma, V0, advs, reward, helper_reward, raw_reward, done, cum_reward, Vtarget, actionReal
+        myu, sigma, V0 = self._batch_collate(self.sess, num_batches, self.load_op, 
+            ops = [self.oldA, self.V0], feed_dict= None ) # N, B, ACT / N, B, 1
     
-        helper_reward, raw_reward = data['helper_reward'], data['raw_reward'] #np.transpose(data['helper_reward'], [1, 0]), np.transpose(data['raw_reward'], [1, 0])
+        helper_reward, raw_reward, done = data['helper_reward'], data['raw_reward'], data['done']
         reward = helper_reward + raw_reward # TS, NA
 
-        done = data['done'] # TS, NA #np.transpose(data['done'], [1, 0]) # NA, TS
+        reward, rewardStd, tot_reward = self._reward(self.timestep, self.num_agents, done, reward,self.rewardTrack, self.raw_rewardTrack)
+        advs = self._advantage(self.timestep, self.num_agents, done, reward, V0, V)
+        Vtarget = advs + V0 # TS, NA
 
-        cum_reward = np.zeros_like(reward) # TS, NA 
-        for i in range(self.num_agents):
-            done[i][-1] = reward[i][-1] # THIS IS WEIRD
-            for t in reversed(range(self.timestep-1)):
-                if done[i][t]:
-                    cum_reward[i][t] = reward[i][t]
-                else:
-                    cum_reward[i][t] = GAMMA * cum_reward[i][t+1] + reward[i][t]
-        for i in range(self.timestep):
-            self.rewardTrack.update(cum_reward[:, i])
-            self.raw_rewardTrack.update(cum_reward[:, i])
-        rewardStd = self.rewardTrack.get_std()
-        tot_reward = self.raw_rewardTrack.X0.mean()
-        reward /= rewardStd
-
-        for i in range(self.num_agents):
-            if done[i][-1]:
-                advs[i][-1] = reward[i][-1] - V0[i][-1]
-            else:
-                advs[i][-1] = reward[i][-1] + GAMMA * V[i] - V0[i][-1]
-            for t in reversed(range(self.timestep - 1)):
-                if done[i][t]:
-                    advs[i][t] = reward[i][t] - V0[i][t]
-                else:
-                    delta = reward[i][t] + GAMMA * V0[i][t+1] - V0[i][t]
-                    advs[i][t] = delta + GAMMA * LAMBDA * advs[i][t+1]
-
-        Vtarget = advs + V0 # NA, TS
-
-        #Before gpu update
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
-        actionReal = np.transpose(data['action'], [1, 0, 2]) # NA, TS, ACT
+        actionReal = data['action'] # TS, NA, ACT
 
-        if update_gpu:
-            dict_all = {self.placeholders[k]:data[k] for k in self.placeholders.keys() if "prev/" in k}
-            dict_all.update({self._myu:myu, self._sigma:sigma, self._advs: advs, 
-                self._Vtarget: Vtarget, self._oldV0: V0, self._actionReal: actionReal})
-            self.sess.run(self.store_op, feed_dict = dict_all)
+        assert update_gpu
+        dict_all = {self.placeholders[k]:data[k] for k in self.placeholders.keys() if "prev/" in k}
+        dict_all.update({self._myu:myu, self._sigma:sigma, self._advs: advs, 
+            self._Vtarget: Vtarget, self._oldV0: V0, self._actionReal: actionReal})
+        self.sess.run(self.store_op, feed_dict = dict_all)
         if add_merge:
-            dict_all = {self.reward: reward, self.helper_reward:helper_reward, self.raw_reward: raw_reward, self.rewardStd: rewardStd, self.tot_reward: tot_reward, self.lrA:lr, self.ent_coef:ent_coef}
-            collate = []
+            dict_all = {
+                self.reward: reward, self.helper_reward:helper_reward, self.raw_reward: raw_reward, 
+                self.rewardStd: rewardStd, self.tot_reward: tot_reward, 
+                self.lrA:lr, self.ent_coef:ent_coef
+            }
             self.sess.run(self.init_accA)
-            for i in range(num_batches):
-                self.sess.run(self.load_op[i])
-                collate.append(self.sess.run([self.loss_Agent, self.loss_Critic, self.pg_loss, self.loss, self.ratio, self.accA], feed_dict = {self.ent_coef:ent_coef}))
-            TlA, TlC, Tpg_loss, Tloss, Tratio, _ = (x for x in zip(*collate)) # N, B, ACT / N, B, 1
+            TlA, TlC, Tpg_loss, Tloss, Tratio, _ = self._batch_collate(self.sess, num_batches, self.load_op, 
+                ops = [self.loss_Agent, self.loss_Critic, self.pg_loss, self.loss, self.ratio, self.accA],
+                feed_dict= {self.ent_coef:ent_coef}) # N, B, ACT / N, B, 1
             TgradA = self.sess.run(self.gradA)
-
-            return Tloss, TlA.mean(), TlC.mean(), Tratio.max(), Tpg_loss.mean(), TgradA, dict_all 
+            return Tloss.mean(), TlA.mean(), TlC.mean(), Tratio.max(), Tpg_loss.mean(), TgradA, dict_all 
 
     def trainA(self, lr, num_batches = None, ent_coef = None):
+        assert NUM_UPDATE == 1
         self.sess.run(self.init_accA)
         approxkl = 0.
         for i in range(num_batches):
             self.sess.run(self.load_op[i])
             _, Tapproxkl = self.sess.run([self.accA, self.approxkl], feed_dict = {self.ent_coef:ent_coef})
             approxkl += Tapproxkl / num_batches
-            if (i+1) % NUM_UPDATE == 0:
-                self.sess.run(self.optA, feed_dict = {self.lrA:lr, self.ent_coef:ent_coef})
-                self.sess.run(self.init_accA)
+            self.sess.run(self.optA, feed_dict = {self.lrA:lr, self.ent_coef:ent_coef})
+            self.sess.run(self.init_accA)
         return approxkl
+
     def _register_summaries(self):
         # tf.Summary & Writer
         summaries = {
@@ -222,3 +189,40 @@ class Model():
         merge = tf.summary.merge(summaries)
         writer = tf.summary.FileWriter('./log/' + f'_Sub_{self.tag}/', self.sess.graph)
         return merge, writer
+
+    def _advantage(self, timestep, num_agents, done, reward, V0, V):
+        advs = np.zeros_like(V0) # N, CHK
+        for i in range(num_agents):
+            if done[-1,i]:
+                advs[-1, i] = reward[-1, i] - V0[-1, i]
+            else:
+                advs[-1, i] = reward[-1, i] + GAMMA * V[i] - V0[-1, i]
+            for t in reversed(range(timestep - 1)):
+                if done[t, i]:
+                    advs[t,i] = reward[t,i] - V0[t,i]
+                else:
+                    delta = reward[t,i] + GAMMA * V0[t+1,i] - V0[t,i]
+                    advs[t,i] = delta + GAMMA * LAMBDA * advs[t+1,i]
+        return advs
+    def _reward(self, timestep, num_agents, done, reward, rewardTrack,raw_rewardTrack ):
+        cum_reward = np.zeros_like(reward) # TS, NA 
+        for i in range(num_agents):
+            done[-1, i] = reward[-1, i] # THIS IS WEIRD
+            for t in reversed(range(timestep-1)):
+                if done[t,i]:
+                    cum_reward[t,i] = reward[t,i]
+                else:
+                    cum_reward[t,i] = GAMMA * cum_reward[t+1, i] + reward[t,i]
+        for t in range(timestep):
+            rewardTrack.update(cum_reward[t, :])
+            raw_rewardTrack.update(cum_reward[t, :])
+        rewardStd = rewardTrack.get_std()
+        tot_reward = raw_rewardTrack.X0.mean()
+        reward /= rewardStd
+        return reward, rewardStd, tot_reward
+    def _batch_collate(self,sess, num_batches, load_op, ops, feed_dict):
+        collate = []
+        for i in range(num_batches):
+            sess.run(load_op[i])
+            collate.append(sess.run(ops, feed_dict = feed_dict))
+        return [np.stack(x) for x in zip(*collate)] # N, B, ACT / N, B, 1
