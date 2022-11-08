@@ -113,35 +113,22 @@ def makeOptimizer(lr, loss, decay = False, var_list = None):
     if decay:
         global_step = tf.Variable(0, trainable=False)
         lr = tf.train.exponential_decay(lr, global_step, 1000, 0.96, staircase = False)
-        opt = tf.train.AdamOptimizer(lr, epsilon = 1e-4)
-        if var_list == None:
-            gradients, variables = zip(*opt.compute_gradients(loss))
-        else:
-            gradients, variables = zip(*opt.compute_gradients(loss, var_list = var_list))
-        gradients, variables = excludeNone(gradients, variables)
-        accum_grads = [tf.Variable(tf.zeros_like(var.initialized_value()), trainable=False) for var in variables]
-        acc_init = [tv.assign(tf.zeros_like(tv)) for tv in accum_grads]
-        accum_ops = [accum_grads[i].assign_add(gradients / NUM_CHUNKS) for i, gradients in enumerate(gradients)]
-        accum_gradsC, _ = tf.clip_by_global_norm(accum_grads, 5.0)
-        final_opt = opt.apply_gradients([(accum_gradsC[i], var) for i, var in enumerate(variables)])
-        #final_opt = opt.apply_gradients(zip(gradients, variables), global_step=global_step)
+    opt = tf.train.AdamOptimizer(lr, epsilon = 1e-4)
+    if var_list == None:
+        gradients, variables = zip(*opt.compute_gradients(loss))
     else:
-        opt = tf.train.AdamOptimizer(lr, epsilon = 1e-4)
-        if var_list == None:
-            gradients, variables = zip(*opt.compute_gradients(loss))
-        else:
-            gradients, variables = zip(*opt.compute_gradients(loss, var_list = var_list))
-        gradients, variables = excludeNone(gradients, variables)
-        print(variables)
-        #gradients, _ = tf.clip_by_global_norm(gradients, 5.0)
-        accum_grads = [tf.Variable(tf.zeros_like(var.initialized_value()), trainable=False) for var in variables]
-        acc_init = [tv.assign(tf.zeros_like(tv)) for tv in accum_grads]
-        #print(gradients, variables)
-        accum_ops = [accum_grads[i].assign_add(gradients / NUM_CHUNKS) for i, gradients in enumerate(gradients)]
-        accum_gradsC, _ = tf.clip_by_global_norm(accum_grads, 5.0)
-        final_opt = opt.apply_gradients([(accum_gradsC[i], var) for i, var in enumerate(variables)])
-        #final_opt = opt.apply_gradients(zip(gradients, variables))
-    return accum_ops, acc_init, final_opt, tf.global_norm(accum_grads)
+        gradients, variables = zip(*opt.compute_gradients(loss, var_list = var_list))
+    gradients, variables = excludeNone(gradients, variables)
+
+    accum_grads = [tf.Variable(tf.zeros_like(var.initialized_value()), trainable=False) for var in variables]
+    backward_op= [accum_grads[i].assign_add(gradients / NUM_CHUNKS) for i, gradients in enumerate(gradients)]
+
+    accum_gradsC, _ = tf.clip_by_global_norm(accum_grads, 5.0)
+    optimizer_step_op = opt.apply_gradients([(accum_gradsC[i], var) for i, var in enumerate(variables)])
+    
+    zero_grads = [tv.assign(tf.zeros_like(tv)) for tv in accum_grads]
+    
+    return backward_op, zero_grads, optimizer_step_op, tf.global_norm(accum_grads)
 
 def variable_summaries(var):
     summaries = []
