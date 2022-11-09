@@ -12,11 +12,13 @@ class ParamBackup:
             self.revert_op.append([main_var.assign(target_var.value()) for main_var, target_var in zip(main_vars, target_vars)])
 
     def commit(self):
+        print("Commited")
         self.sess.run(self.copy_op)
         for backup in self.backup_subsets:
             backup.commit()
 
     def revert(self):
+        print("Reverted")
         self.sess.run(self.revert_op)
         for backup in self.backup_subsets:
             backup.revert()
