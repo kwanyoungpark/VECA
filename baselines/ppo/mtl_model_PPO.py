@@ -1,34 +1,14 @@
 import tensorflow as tf
-from utils import *
+from .utils import *
 import numpy as np
-from constants import *
-from sub_model_PPO import Model as SubModel
-if RNN:
+from .constants import *
+from .sub_model_PPO import Model as SubModel
+if False:
     from agents import UniversalRNNEncoder as Encoder
 else:
-    from agents import UniversalEncoder as Encoder
+    from .agents import UniversalEncoder as Encoder
+from .util2 import ParamBackup
 
-class ParamBackup:
-    def __init__(self, sess, src_scopes, dst_scopes, backup_subsets = []):
-        assert len(src_scopes) == len(dst_scopes)
-        self.copy_op, self.revert_op = [], []
-        self.sess = sess
-        self.backup_subsets = backup_subsets
-        for src, dst in zip(src_scopes, dst_scopes):
-            main_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=src)
-            target_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=dst)
-            self.copy_op.append([target_var.assign(main_var.value()) for main_var, target_var in zip(main_vars, target_vars)])
-            self.revert_op.append([main_var.assign(target_var.value()) for main_var, target_var in zip(main_vars, target_vars)])
-
-    def commit(self):
-        self.sess.run(self.copy_op)
-        for backup in self.backup_subsets:
-            backup.commit()
-
-    def revert(self):
-        self.sess.run(self.revert_op)
-        for backup in self.backup_subsets:
-            backup.revert()
 
 class Model():
     def __init__(self, envs,sess, obs_sample, tag): 
@@ -50,7 +30,7 @@ class Model():
         # Log Writer Init
         self.summaries = {'lr': tf.placeholder(tf.float32),'ent_coeff': tf.placeholder(tf.float32),}
         summaries = [variable_summaries(var) for var in tf.trainable_variables(scope = 'targetE')]
-        summaries.append([tf.summary.scalar(k, v) for k,v in self.summaries])
+        summaries.append([tf.summary.scalar(k, v) for k,v in self.summaries.items()])
         self.merge = tf.summary.merge(summaries)
         self.writer = tf.summary.FileWriter('./log/' + f'MultiTask_{tag}', self.sess.graph)
 
@@ -58,27 +38,21 @@ class Model():
 
         # Trainable Variables Early Stopping & Parameter Revert 
         self.backup = ParamBackup(self.sess, ['mainE'], ['targetE'], backup_subsets = [submodel.backup for submodel in self.models])
-        main_varsE = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='mainE')
-        target_varsE = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='targetE')
-        self.copy_op = [target_var.assign(main_var.value()) for main_var, target_var in zip(main_varsE, target_varsE)]
-        self.revert_op = [main_var.assign(target_var.value()) for main_var, target_var in zip(main_varsE, target_varsE)]
-
     def get_action(self, data):
-        return [model.get_action(elem) for elem, model in zip(data,self.models)]
+        return [model.get_action(elem)[2] for elem, model in zip(data,self.models)]
 
     def make_batch(self, heads):
         summarys = []
         for head, model in zip(heads,self.models):
-            batch = head.replayBuffer.get_batch()
+            batch = head.get_batch(num = model.timestep)
             summarys.append(model.make_batch(batch))
         return summarys
 
     def forward(self, ent_coef):
         collate = [model.forward(ent_coef) for model in self.models]
         loss, lA, lC, ratio, pg_loss, grad = zip(*collate)
-        loss, lA, lC, ratio, pg_loss= sum(loss), sum(lA), sum(lC), max(ratio), sum(pg_loss)
-        print("Loss {:.5f} Aloss {:.5f} Closs {:.5f} Maximum ratio {:.5f} pg_loss {:.5f} grad {:.5f} lr {:.5f}".format(
-            loss, lA, lC, ratio, pg_loss, grad))
+        loss, lA, lC, ratio, pg_loss, grad= sum(loss), sum(lA), sum(lC), max(ratio), sum(pg_loss), sum(grad)
+
         return loss, lA, lC, ratio, pg_loss, grad
 
 

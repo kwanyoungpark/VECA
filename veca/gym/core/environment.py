@@ -30,6 +30,7 @@ class EnvModule():
             exec_path_win, download_link_win,
             exec_path_linux, download_link_linux,
         ):
+        self.task = task
         self.num_envs = num_envs
         total_num_envs = num_envs
         self.remote_env = remote_env

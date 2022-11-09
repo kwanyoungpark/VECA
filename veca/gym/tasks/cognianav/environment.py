@@ -32,6 +32,6 @@ class Environment(EnvModule):
         for key in ["agent/img","agent/wav", "agent/tactile"]:
             if key in data:
                 obs[key] = data.pop(key)
-        return (obs, rewards, done, data)
+        return (obs, rewards, np.squeeze(done,axis = -1), data)
 
 

@@ -1,11 +1,7 @@
 import tensorflow as tf
-from utils import *
+from .utils import *
 import numpy as np
-import sys
-import os
-import cv2 
-import time
-from constants import *
+from .constants import *
 
 zero_init = tf.constant_initializer(0.)
 one_init = tf.constant_initializer(1.)
@@ -87,6 +83,10 @@ class UniversalRNNEncoder():
 class UniversalEncoder():
     def __init__(self, name, SIM):
         self.name = name
+        self.hidden_size = 256
+        self.feature_size = 512
+        self.initialized = False
+        '''
         if SIM == 'VECA':
             IMG_C = 6
             WAV_C, WAV_LENGTH = 2, 66*13
@@ -97,24 +97,10 @@ class UniversalEncoder():
             TACTILE_LENGTH = 5 * 82 + 9888     # RunBaby
             #TACTILE_LENGTH = 5 * 82            # RunBaby w/o tactile
             #TACTILE_LENGTH = 1                  # COGNIANav simple tactile
-        if SIM == 'ATARI':
-            IMG_C = 4
-            WAV_C, WAV_LENGTH = 0, 0
-            NUM_OBJS = 0
-            TACTILE_LENGTH = 0
-        if SIM == 'CartPole':
-            IMG_C = 0
-            WAV_C, WAV_LENGTH = 0, 0
-            NUM_OBJS = 0
-            TACTILE_LENGTH = 4
-        if SIM == 'Pendulum':
-            IMG_C = 0
-            WAV_C, WAV_LENGTH = 0, 0
-            NUM_OBJS = 0
-            TACTILE_LENGTH = 3
         #IMG_C = env.observation_space['image'][0]
         #WAV_C, WAV_LENGTH = env.observation_space['audio']
         #NUM_OBJS = env.observation_space['obj']
+        
         with tf.variable_scope(self.name):
             self.weights = {
                 'wc1iA': tf.get_variable('wc1iA', [8, 8, IMG_C, 32]),
@@ -144,6 +130,7 @@ class UniversalEncoder():
 
                 'bd1dA': tf.get_variable('bd1dA', [STATE_LENGTH], initializer = c_init(0.1))
             }
+            '''
 
     def get_params(self):
         return list(self.weights.values()) + list(self.biases.values())
@@ -159,44 +146,77 @@ class UniversalEncoder():
         tf.summary.image('wc2', self.normalize_filters(self.weights['wc2iA']))#, max_outputs = 64)
         tf.summary.image('wc3', self.normalize_filters(self.weights['wc3iA']))#, max_outputs = 64)
 
-    def forward(self, data):
-        img, wav, obj, touch = data
-        if img is not None:
-            batch_size = tf.shape(img)[0]
-        elif wav is not None:
-            batch_size = tf.shape(wav)[0]
-        elif obj is not None:
-            batch_size = tf.shape(obj)[0]
-        elif touch is not None:
-            batch_size = tf.shape(touch)[0]
+    def forward(self,data):
+        img, wav, obj, touch = None, None, None, None
+        for key in data:
+            if "agent/img" in key: img = data[key]
+            elif "agent/wav" in key: wav = data[key]
+            elif "agent/obj" in key: obj = data[key]
+            elif "agent/touch" in key: touch = data[key]
+        B = img.get_shape()[0]
+        im4, au1, ob1, to1 = (tf.zeros([B, self.hidden_size]), tf.zeros([B, self.hidden_size]), 
+            tf.ones([B, self.hidden_size]), tf.zeros([B, self.hidden_size]))
+
+        if not self.initialized:
+            self.weights, self.biases = {}, {}
         with tf.variable_scope(self.name): 
-            if img is None:
-                im4 = tf.zeros([batch_size, 256])
-            else:
-                batch_size = tf.shape(img)[0]
+            if img is not None:
+                B,A,N,H,W,C = img.get_shape().as_list()
+                img = tf.reshape(tf.transpose(img, [0,1,3,4,2,5]), [B * A, H, W, N * C])
+                if not self.initialized:
+                    self.weights['wc1iA'] = tf.get_variable('wc1iA', [8, 8, N * C, 32] )
+                    self.biases['bc1iA'] = tf.get_variable('bc1iA', [32])
                 im1 = conv2D(img, self.weights['wc1iA'], self.biases['bc1iA'], strides = 4, padding = "VALID")
+
+                if not self.initialized:
+                    self.weights['wc2iA'] = tf.get_variable('wc2iA', [4, 4, 32, 64])
+                    self.biases['bc2iA'] = tf.get_variable('bc2iA', [64])
                 im2 = conv2D(im1, self.weights['wc2iA'], self.biases['bc2iA'], strides = 2, padding = "VALID")
+
+                if not self.initialized:
+                    self.weights['wc3iA'] = tf.get_variable('wc3iA', [3, 3, 64, 64])
+                    self.biases['bc3iA'] = tf.get_variable('bc3iA', [64])
                 im3 = conv2D(im2, self.weights['wc3iA'], self.biases['bc3iA'], strides = 1, padding = "VALID")
-                im3 = tf.reshape(im3, [batch_size, 3136])
+                B_, H_, W_, C_ = im3.get_shape().as_list()
+
+                im3 = tf.reshape(im3, [B_, H_ * W_ * C_])
+                
+                if not self.initialized:
+                    self.weights['wd1iA'] = tf.get_variable('wd1iA', [H_ * W_ * C_, self.hidden_size])
+                    self.biases['bd1iA'] = tf.get_variable('bd1iA', [self.hidden_size])
                 im4 = dense(im3, self.weights['wd1iA'], self.biases['bd1iA'], activation = 'relu')
             
-            if wav is None:
-                au1 = tf.zeros([batch_size, 256])
-            else:
+            if wav is not None:
+                B,A,N,C = wav.get_shape().as_list()
+                wav = tf.reshape(wav, [B* A, N * C])
+                
+                if not self.initialized:
+                    self.weights['wd1wA'] = tf.get_variable('wd1wA', [N * C, self.hidden_size])
+                    self.biases['bd1wA'] = tf.get_variable('bd1wA', [self.hidden_size])
                 au1 = dense(wav, self.weights['wd1wA'], self.biases['bd1wA'], activation = 'relu')
 
-            if obj is None:
-                ob1 = tf.ones([batch_size, 256])
-            else:
+            if obj is not None:
+                B,A,C = obj.get_shape().as_list()
+                
+                if not self.initialized:
+                    self.weights['wd1wO'] = tf.get_variable('wd1wO', [C, self.hidden_size])
                 ob1 = tf.matmul(obj, self.weights['wd1wO'])
 
-            if touch is None:
-                to1 = tf.zeros([batch_size, 256])
-            else:
+            if touch is not None:
+                B,A,C = touch.get_shape().as_list()
+                
+                if not self.initialized:
+                    self.weights['wd1iT'] = tf.get_variable('wd1iA', [C, self.hidden_size])
+                    self.biases['bd1iT'] = tf.get_variable('bd1iA', [self.hidden_size])
                 to1 = dense(touch, self.weights['wd1wT'], self.biases['bd1wT'])
 
             da0 = tf.concat([im4 * ob1, au1, to1], axis = 1)
+            
+            if not self.initialized:
+                self.weights['wd1dA'] = tf.get_variable('wd1dA', [self.hidden_size * 3, self.feature_size])
+                self.biases['bd1dA'] = tf.get_variable('bd1dA', [self.feature_size])
             res = dense(da0, self.weights['wd1dA'], self.biases['bd1dA'], activation = 'tanh')
+            self.initialized = True
         return res
 
 class AtariEncoder():

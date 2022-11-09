@@ -56,7 +56,7 @@ def list_tasks(tasks_dir:str = TASKS_ROOTDIR_DEFAULT):
     return out
 
 from typing import Optional
-def make(task: str, num_envs: int, args: 'list[str]', seeds:Optional['list[int]'] = None, remote_env:bool = False, ip:Optional[str] = None, port: int = 46489):
+def make(task: str, num_envs: int, args: 'list[str]', seeds:Optional['list[int]'] = None, remote_env:bool = False, port: int = 46489):
     tasks_list = list_tasks()
     if task not in tasks_list:
         raise ValueError("Task [" + task + "] not supported.\n"+

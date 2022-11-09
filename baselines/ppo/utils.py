@@ -1,8 +1,5 @@
 import tensorflow as tf
-import cv2
 import numpy as np
-import random
-import tensorflow.contrib.slim as slim 
 import math
 
 def log_prob_tf(myu, sigma, x):
@@ -108,7 +105,7 @@ def excludeNone(grad, var):
         variables.append(var[i])
     return gradients, variables
 
-from constants import NUM_CHUNKS
+from .constants import NUM_CHUNKS
 def makeOptimizer(lr, loss, decay = False, var_list = None):
     if decay:
         global_step = tf.Variable(0, trainable=False)
