@@ -10,16 +10,40 @@ class ReplayBuffer():
         self.storage = [] 
         print('cleared!')
         
-    def add(self, datadict):
+    def _add_dict(self, datadict):
         if len(self.storage) >= self.capacity:
             idx = np.random.randint(len(self.storage))
             self.storage[idx] = datadict
         else:
             self.storage = [datadict] * self.capacity
-       
 
     def get(self, num = -1): # list[timestep] ((NUM_AGENTS, *obs_shape))
         if num < 0:
-            return self.storage
+            return self._listdict_to_dictlist(self.storage)
         else:
-            return [self.storage[i] for i in random.sample(range(len(self.storage)), k = num)]
+            choices = [self.storage[i] for i in random.sample(range(len(self.storage)), k = num)]
+            return self._listdict_to_dictlist(choices)
+
+    def _listdict_to_dictlist(self,listdict):
+        out = {}
+        for key in listdict[0].keys():
+            out[key] = np.stack([data[key] for data in listdict])
+        return out
+
+    def add(self, obs,reward,done, action,clear):
+        obs_cur = {"cur/" + k:v for k,v in obs.items()}
+
+        if clear: self.obs_prev = obs
+        obs_prev = {"prev/" + k:v for k,v in self.obs_prev.items()}
+
+        ddict = self._merge_dicts(obs_cur, obs_prev, {"helper_reward": np.zeros_like(reward)},{"raw_reward":reward}, {"done":done}, {"action":action})
+
+        self._add_dict(ddict)
+        self.obs_prev = obs
+
+    def _merge_dicts(self,*args):
+        acc = {}
+        for d in args:
+            assert isinstance(d, dict)
+            acc.update(d)
+        return acc

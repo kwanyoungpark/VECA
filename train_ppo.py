@@ -3,6 +3,7 @@ import numpy as np
 import os
 from baselines.ppo.utils import *
 from baselines.ppo.mtl_model_PPO import Model as MTLModel
+from baselines.ppo.replaybuffer import ReplayBuffer
 import veca.gym
 import random
 from baselines.ppo.headquarter import HeadQuarter
@@ -39,45 +40,56 @@ if __name__ == "__main__":
 
     
     class MultiTaskDataLoader:
-        def __init__(self, envs, buffer_length, timestep):
+        def __init__(self, envs):
             self.heads = []
-            self.timestep = timestep
             for env in envs:
-                self.heads.append(HeadQuarter(env = env, bufferlength = buffer_length, timestep = timestep))
+                self.heads.append(HeadQuarter(env = env))
 
-        def step(self, actions):
+        def step(self, actions,replay_buffers):
             assert len(actions) == len(self.heads)
+            assert len(replay_buffers) == len(self.heads)
             collate = []
-            for action, head in zip(actions,self.heads):
-                obs, reward, done, infos = head.step(action)
+            for action, head, replay_buffer in zip(actions,self.heads, replay_buffers.replayBuffers):
+                obs, reward, done, infos = head.step(action,replay_buffer)
                 collate.append((obs,reward, done, infos))
             return tuple(zip(*collate))
 
-        def sample(self):
+        def sample(self, replay_buffers):
+            assert len(replay_buffers) == len(self.heads)
             collate = []
-            for head in self.heads:
-                obs, reward, done, infos = head.sample()
+            for head, replay_buffer in zip(self.heads, replay_buffers.replayBuffers):
+                obs, reward, done, infos = head.sample(replay_buffer)
                 collate.append((obs,reward, done, infos))
             return tuple(zip(*collate))
-        
-        def sample_from_replay_buffer(self):
+
+        def reset(self, replay_buffers):
+            assert len(replay_buffers) == len(self.heads)
+            for head, replay_buffer in zip(self.heads, replay_buffers.replayBuffers):
+                head.reset(replay_buffer)
+
+    class MultiTaskReplayBuffer:
+        def __init__(self, num_tasks, buffer_length, timestep):
+            self.timestep = timestep
+            self.replayBuffers = []
+            for i in range(num_tasks):
+                self.replayBuffers.append(ReplayBuffer(capacity= buffer_length))
+        def __len__(self):
+            return len(self.replayBuffers)
+        def get_batch(self):
             collate = []
-            for head in self.heads:
-                collate.append(head.get_batch(num = self.timestep))
+            for buffer in self.replayBuffers:
+                collate.append(buffer.get(self.timestep))
             return collate
+        def clear(self):
+            for replay_buffer in self.replayBuffers:
+                replay_buffer.clear()
 
-        def clear_buffer(self):
-            for head in self.heads:
-                head.replayBuffer.clear()
+    dl = MultiTaskDataLoader(envs)
+    buffers = MultiTaskReplayBuffer(len(envs), buffer_length=BUFFER_LENGTH, timestep=TIME_STEP)
 
-        def reset(self):
-            for head in self.heads:
-                head.restart()
-    dl = MultiTaskDataLoader(envs, buffer_length = BUFFER_LENGTH, timestep = TIME_STEP)
+    dl.reset(buffers)
 
-    dl.reset()
-
-    obs_sample = dl.sample_from_replay_buffer()[0]
+    obs_sample = buffers.get_batch()
     print(obs_sample)
     model = MTLModel(envs, sess,obs_sample, tag)
 
@@ -113,41 +125,38 @@ if __name__ == "__main__":
     frac = 1.
     entropy_coeff = 0.01 * frac
     
-    dl.reset()
-    obs, reward, done, infos = dl.sample()
+    dl.reset(buffers)
+    obs, reward, done, infos = dl.sample(buffers)
 
     for step in range(TRAIN_STEP):
         actions = model.get_action(obs)
-        obs, reward, done, infos = dl.step(actions)
+        obs, reward, done, infos = dl.step(actions,buffers)
 
         if (step+1) % TIME_STEP == 0:
-            print("Training Actor & Critic...")
+            batches = buffers.get_batch()
 
-            batches = dl.sample_from_replay_buffer()
-
-            summarys = model.make_batch(batches)
+            summarys = model.feed_batch(batches)
             loss, lA, lC, ratio, pg_loss, grad = model.forward(ent_coef = entropy_coeff)
-            print("STEP", step, "Loss {:.5f} Aloss {:.5f} Closs {:.5f} Maximum ratio {:.5f} pg_loss {:.5f} grad {:.5f}".format(
-                loss, lA, lC, ratio, pg_loss, grad))
+            
 
             for idx in range(TRAIN_LOOP):
                 approxkl = model.optimize_step(lr = lr_scheduler.lrA / (TRAIN_LOOP), ent_coef = entropy_coeff)
                 if approxkl > 0.01: break
-
-            if approxkl <= 0.01:
-                print("KLD {:.3f}, updated full gradient step.".format(approxkl))
-            else:
-                print("KLD {:.3f}, early stopping.".format(approxkl))
             
             lossP, _, _, _, _, _ = model.forward(ent_coef = entropy_coeff)
 
             lr_scheduler.step(model.backup, approxkl, loss, lossP)
 
-            model.log(summarys, lr_scheduler.lrA, entropy_coeff, step )
+            buffers.clear()
 
-            dl.clear_buffer()
+            model.log(summarys, lr_scheduler.lrA, entropy_coeff, step )
+            if approxkl <= 0.01: print("KLD {:.3f}, updated full gradient step.".format(approxkl))
+            else: print("KLD {:.3f}, early stopping.".format(approxkl))
+            print("STEP", step, "Loss {:.5f} Aloss {:.5f} Closs {:.5f} Maximum ratio {:.5f} pg_loss {:.5f} grad {:.5f}".format(
+                loss, lA, lC, ratio, pg_loss, grad))
+
         if (step+1) % 1280 == 0:
-            dl.reset()
+            dl.reset(buffers)
         if (step + 1) % SAVE_STEP == 0:
             model.save(name = f'./model/mtl_model_{tag}/')
 

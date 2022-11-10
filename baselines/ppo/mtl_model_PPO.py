@@ -11,14 +11,14 @@ from .util2 import ParamBackup
 
 
 class Model():
-    def __init__(self, envs,sess, obs_sample, tag): 
+    def __init__(self, envs,sess, obs_samples, tag): 
         self.sess = sess
 
         # Multi-task Model Initialization
         self.encoder = Encoder('mainE', SIM)
         self.encoder0 = Encoder('targetE', SIM)
         self.models = [] 
-        for env in envs:
+        for obs_sample, env in zip(obs_samples,envs):
             model = SubModel(env, self.sess, gamma = GAMMA, lambda_coeff = LAMBDA, timestep = TIME_STEP, num_batches = NUM_CHUNKS,
                 encoder = self.encoder, encoder0 = self.encoder0, obs_sample = obs_sample, tag = tag)
             self.models.append(model)
@@ -41,10 +41,10 @@ class Model():
     def get_action(self, data):
         return [model.get_action(elem)[2] for elem, model in zip(data,self.models)]
 
-    def make_batch(self, batches):
+    def feed_batch(self, batches):
         summarys = []
         for batch, model in zip(batches,self.models):
-            summarys.append(model.make_batch(batch))
+            summarys.append(model.feed_batch(batch))
         return summarys
 
     def forward(self, ent_coef):

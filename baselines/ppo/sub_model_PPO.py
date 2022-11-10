@@ -103,7 +103,7 @@ class Model():
             state = self.sess.run(self.inferS, feed_dict = dict_inf)
             return myu, sigma, action, state
 
-    def make_batch(self, data):
+    def feed_batch(self, data):
         
         obs_infer = {self.placeholders_inf[key]:np.expand_dims(data[key][-1], axis = 0)  for key in self.placeholders_inf.keys()}
         V = self.sess.run(self.inferV0, feed_dict = obs_infer)
