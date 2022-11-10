@@ -1,20 +1,19 @@
 import tensorflow as tf
-from .utils import *
 import numpy as np
-from .constants import *
 from .agents import CriticPPO as Critic
 from .agents import AgentContinuousPPO as Agent
-from .util2 import ParamBackup
-import itertools
+from .utils import ParamBackup, rewardTracker, makeOptimizer
 
 class Model():
-    def __init__(self, env, sess, gamma, lambda_coeff, timestep, num_batches, encoder, encoder0, obs_sample, tag): 
+    def __init__(self, env, sess, encoder, encoder0, obs_sample, gamma, lambda_coeff, timestep, num_batches, use_rnn,tag): 
         self.num_agents = env.num_agents
         self.action_space = env.action_space
         self.sess = sess
         self.timestep = timestep
         self.gamma = gamma 
         self.lambda_coeff = lambda_coeff
+        self.use_rnn = use_rnn
+
         name = env.task
         BATCH_SIZE = (self.timestep * self.num_agents) // num_batches
         
@@ -68,7 +67,7 @@ class Model():
             # Forward Propagation 
             self.inferA = self.brain0.forward(self.placeholders_inf)
             self.inferV0 = self.critic0.forward(self.placeholders_inf)
-            if RNN: self.inferS = encoder0.forward(self.placeholders_inf)
+            if self.use_rnn: self.inferS = encoder0.forward(self.placeholders_inf)
 
             self.dat = {k:self.batch[k] for k in obshape_prev.keys()}
             self.oldA_myu, self.oldA_sigma = self.brain0.forward(self.dat)
@@ -86,7 +85,7 @@ class Model():
 
             self.lrA = tf.placeholder(tf.float32)
             with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-                self.backward_op, self.zero_grad, self.optimizer_step_op, self.grad_norm = makeOptimizer(self.lrA, self.loss, decay = False)
+                self.backward_op, self.zero_grad, self.optimizer_step_op, self.grad_norm = makeOptimizer(self.lrA, self.loss, num_batches, decay = False)
             
             self.merge, self.writer = self._register_summaries(name,tag)
 
@@ -97,7 +96,7 @@ class Model():
         dict_inf = {self.placeholders_inf[k]:np.expand_dims(data["/".join(k.split("/")[1:])], axis = 0) for k in self.placeholders_inf.keys()}
         myu, sigma = self.sess.run(self.inferA, feed_dict = dict_inf)
         action = np.random.normal(myu, sigma)
-        if not RNN:
+        if not self.use_rnn:
             return myu, sigma, action
         else:
             state = self.sess.run(self.inferS, feed_dict = dict_inf)
@@ -145,7 +144,6 @@ class Model():
         return Tloss.mean(), TlA.mean(), TlC.mean(), Tratio.max(), Tpg_loss.mean(), TgradA
 
     def optimize_step(self, lr, ent_coef):
-        assert NUM_UPDATE == 1
         approx_kls = []
         for load_op_e in self.load_op:
             self.sess.run(self.zero_grad)

@@ -1,8 +1,7 @@
 import numpy as np
-from .replaybuffer import ReplayBuffer
 from collections import defaultdict
 
-class HeadQuarter(): #TODO Make it as a generator (DataLoader pov)
+class EnvDataLoader(): #TODO Make it as a generator (DataLoader pov)
     def __init__(self, env):
         self.cache = defaultdict(list)
         self.env = env
@@ -34,3 +33,30 @@ class HeadQuarter(): #TODO Make it as a generator (DataLoader pov)
         action[:, 1] = action[:, 1] * 3
         return action
 
+class MultiTaskDataLoader:
+    def __init__(self, envs):
+        self.heads = []
+        for env in envs:
+            self.heads.append(EnvDataLoader(env = env))
+
+    def step(self, actions,replay_buffers):
+        assert len(actions) == len(self.heads)
+        assert len(replay_buffers) == len(self.heads)
+        collate = []
+        for action, head, replay_buffer in zip(actions,self.heads, replay_buffers.replayBuffers):
+            obs, reward, done, infos = head.step(action,replay_buffer)
+            collate.append((obs,reward, done, infos))
+        return tuple(zip(*collate))
+
+    def sample(self, replay_buffers):
+        assert len(replay_buffers) == len(self.heads)
+        collate = []
+        for head, replay_buffer in zip(self.heads, replay_buffers.replayBuffers):
+            obs, reward, done, infos = head.sample(replay_buffer)
+            collate.append((obs,reward, done, infos))
+        return tuple(zip(*collate))
+
+    def reset(self, replay_buffers):
+        assert len(replay_buffers) == len(self.heads)
+        for head, replay_buffer in zip(self.heads, replay_buffers.replayBuffers):
+            head.reset(replay_buffer)

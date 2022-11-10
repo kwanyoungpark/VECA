@@ -17,7 +17,7 @@ class ReplayBuffer():
         else:
             self.storage = [datadict] * self.capacity
 
-    def get(self, num = -1): # list[timestep] ((NUM_AGENTS, *obs_shape))
+    def sample(self, num = -1): # list[timestep] ((NUM_AGENTS, *obs_shape))
         if num < 0:
             return self._listdict_to_dictlist(self.storage)
         else:
@@ -47,3 +47,20 @@ class ReplayBuffer():
             assert isinstance(d, dict)
             acc.update(d)
         return acc
+    
+class MultiTaskReplayBuffer:
+    def __init__(self, num_tasks, buffer_length, timestep):
+        self.timestep = timestep
+        self.replayBuffers = []
+        for i in range(num_tasks):
+            self.replayBuffers.append(ReplayBuffer(capacity= buffer_length))
+    def __len__(self):
+        return len(self.replayBuffers)
+    def sample_batch(self):
+        collate = []
+        for buffer in self.replayBuffers:
+            collate.append(buffer.sample(self.timestep))
+        return collate
+    def clear(self):
+        for replay_buffer in self.replayBuffers:
+            replay_buffer.clear()

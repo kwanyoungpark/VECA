@@ -1,7 +1,7 @@
 import tensorflow as tf
-from .utils import *
+from .layer import *
 import numpy as np
-from .constants import *
+from .legacy.constants import *
 
 zero_init = tf.constant_initializer(0.)
 one_init = tf.constant_initializer(1.)
@@ -81,7 +81,7 @@ class UniversalRNNEncoder():
         return res
 
 class UniversalEncoder():
-    def __init__(self, name, SIM):
+    def __init__(self, name):
         self.name = name
         self.hidden_size = 256
         self.feature_size = 512
