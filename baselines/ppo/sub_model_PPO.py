@@ -27,6 +27,10 @@ class Model():
         }
         outshape = {k: (self.timestep, self.num_agents) + v for k, v in outshape.items()} 
         tensor_shapes = {**obshape_prev, **outshape}
+        print({k:v.shape for k,v in obs_sample.items() })
+        print(obshape_cur)
+        print(obshape_prev)
+        print(tensor_shapes)
 
         
         with tf.variable_scope(name):

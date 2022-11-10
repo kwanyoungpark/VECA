@@ -49,6 +49,12 @@ class HeadQuarter(): #TODO Make it as a generator (DataLoader pov)
         action[:, 1] = action[:, 1] * 3
         return action
 
+    def sample(self):
+        action = np.random.rand(self.env.num_agents, self.env.action_space)
+        obs,reward,done,infos = self.env.step(action)
+        self._add_replay(obs,reward,done,action, clear = False)
+        return obs,reward,done,infos
+
     def _merge_dicts(self,*args):
         acc = {}
         for d in args:

@@ -36,12 +36,49 @@ if __name__ == "__main__":
                 seeds = random.sample(range(0, 2000),num_envs ),    # seeds per env instances
                 remote_env = False                                  # Whether to use the Environment Orchestrator process at a remote server.
                 )]
-    heads = [HeadQuarter(env = env, bufferlength = BUFFER_LENGTH, timestep = TIME_STEP) for env in envs]
 
-    [head.restart() for head in heads]
-    head = heads[0]
-    head.step(np.random.rand(num_envs, envs[0].action_space))
-    obs_sample = head.get_batch(num = TIME_STEP)
+    
+    class MultiTaskDataLoader:
+        def __init__(self, envs, buffer_length, timestep):
+            self.heads = []
+            self.timestep = timestep
+            for env in envs:
+                self.heads.append(HeadQuarter(env = env, bufferlength = buffer_length, timestep = timestep))
+
+        def step(self, actions):
+            assert len(actions) == len(self.heads)
+            collate = []
+            for action, head in zip(actions,self.heads):
+                obs, reward, done, infos = head.step(action)
+                collate.append((obs,reward, done, infos))
+            return tuple(zip(*collate))
+
+        def sample(self):
+            collate = []
+            for head in self.heads:
+                obs, reward, done, infos = head.sample()
+                collate.append((obs,reward, done, infos))
+            return tuple(zip(*collate))
+        
+        def sample_from_replay_buffer(self):
+            collate = []
+            for head in self.heads:
+                collate.append(head.get_batch(num = self.timestep))
+            return collate
+
+        def clear_buffer(self):
+            for head in self.heads:
+                head.replayBuffer.clear()
+
+        def reset(self):
+            for head in self.heads:
+                head.restart()
+    dl = MultiTaskDataLoader(envs, buffer_length = BUFFER_LENGTH, timestep = TIME_STEP)
+
+    dl.reset()
+
+    obs_sample = dl.sample_from_replay_buffer()[0]
+    print(obs_sample)
     model = MTLModel(envs, sess,obs_sample, tag)
 
 
@@ -71,20 +108,24 @@ if __name__ == "__main__":
                 backup.commit()
 
 
+
     lr_scheduler = AdaptiveLR(schedule = SCHEDULE)
     frac = 1.
     entropy_coeff = 0.01 * frac
     
-    obs, reward, done, infos = zip(*[head.step(np.random.rand(num_envs, head.env.action_space)) for head in heads])
+    dl.reset()
+    obs, reward, done, infos = dl.sample()
 
     for step in range(TRAIN_STEP):
         actions = model.get_action(obs)
-        obs, reward, done, infos = zip(*[head.step(actions[i]) for i, head in enumerate(heads)])
+        obs, reward, done, infos = dl.step(actions)
 
         if (step+1) % TIME_STEP == 0:
             print("Training Actor & Critic...")
 
-            summarys = model.make_batch(heads)
+            batches = dl.sample_from_replay_buffer()
+
+            summarys = model.make_batch(batches)
             loss, lA, lC, ratio, pg_loss, grad = model.forward(ent_coef = entropy_coeff)
             print("STEP", step, "Loss {:.5f} Aloss {:.5f} Closs {:.5f} Maximum ratio {:.5f} pg_loss {:.5f} grad {:.5f}".format(
                 loss, lA, lC, ratio, pg_loss, grad))
@@ -104,9 +145,9 @@ if __name__ == "__main__":
 
             model.log(summarys, lr_scheduler.lrA, entropy_coeff, step )
 
-            [head.replayBuffer.clear() for head in heads]
+            dl.clear_buffer()
         if (step+1) % 1280 == 0:
-            [head.restart() for head in heads]
+            dl.reset()
         if (step + 1) % SAVE_STEP == 0:
             model.save(name = f'./model/mtl_model_{tag}/')
 

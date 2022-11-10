@@ -41,10 +41,9 @@ class Model():
     def get_action(self, data):
         return [model.get_action(elem)[2] for elem, model in zip(data,self.models)]
 
-    def make_batch(self, heads):
+    def make_batch(self, batches):
         summarys = []
-        for head, model in zip(heads,self.models):
-            batch = head.get_batch(num = model.timestep)
+        for batch, model in zip(batches,self.models):
             summarys.append(model.make_batch(batch))
         return summarys
 
