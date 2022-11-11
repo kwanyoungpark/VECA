@@ -19,7 +19,7 @@ class Curriculum:
             distance_from_badobj = np.linalg.norm(badpos, axis = 1)
             helper_reward = func(distance_from_goodobj) - 0.3 * func(distance_from_badobj) 
         self.step += 1
-        print("Helper Reward:", helper_reward, " | Good:", np.linalg.norm(goodpos, axis = 1),  " Bad:", np.linalg.norm(badpos, axis = 1))
+        #print("Helper Reward:", helper_reward, " | Good:", np.linalg.norm(goodpos, axis = 1),  " Bad:", np.linalg.norm(badpos, axis = 1))
         return helper_reward
 
     def step(self):

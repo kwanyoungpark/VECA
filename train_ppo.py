@@ -7,20 +7,28 @@ from baselines.ppo.replaybuffer import MultiTaskReplayBuffer
 from baselines.ppo.utils import AdaptiveLR, Saver
 import veca.gym
 import random
-import time
+import time,argparse
 from baselines.ppo.dataloader import MultiTaskDataLoader
 from baselines.ppo.curriculum import Curriculum
 
 
 if __name__ == "__main__":
-    tag = "PPO_COGNIANav"
-    PORT = 10000
+    
+    parser = argparse.ArgumentParser(description='VECA Navigation')
+    parser.add_argument('--stage1', type=int, 
+                        help='stage 1 init step', required = True)
+    parser.add_argument('--stage2', type=int, 
+                        help='stage 2 init step', required = True)
+    parser.add_argument('--tag', type=str, default = "PPO_COGNIANav")
+    parser.add_argument('--gpuno', type=int, default = 0)
+    parser.add_argument('--port', type=int, default = 10008)
 
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+    args = parser.parse_args()
+    tag = args.tag
+    PORT = args.port
 
     num_envs = 1
-    TRAIN_STEP = 2000000
+    TRAIN_STEP = 8000000
     SAVE_STEP = 100_000
     REC_STEP = 100000
     NUM_CHUNKS = 4
@@ -34,8 +42,9 @@ if __name__ == "__main__":
     NUM_CHUNKS = 4
     TIME_STEP = 128
     entropy_coeff = 0.01
-    STAGE1 = 500#1_000_000
-    STAGE2 = 1000#3_000_000
+    STAGE1 = args.stage1
+    STAGE2 = args.stage2
+    print("STAGE1", STAGE1, "STAGE2", STAGE2)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
