@@ -15,6 +15,7 @@ class Model():
         self.use_rnn = use_rnn
 
         name = env.task
+        self.name = name
         BATCH_SIZE = (self.timestep * self.num_agents) // num_batches
         
         obshape_cur = {k:v.shape for k,v in obs_sample.items() if "cur/" in k}
@@ -87,7 +88,7 @@ class Model():
             with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
                 self.backward_op, self.zero_grad, self.optimizer_step_op, self.grad_norm = makeOptimizer(self.lrA, self.loss, num_batches, decay = False)
             
-            self.merge, self.writer = self._register_summaries(name,tag)
+            #self.merge, self.writer = self._register_summaries(name,tag)
 
             self.backup = ParamBackup(self.sess, [name + '/mainA', name + '/mainC' ], [name + '/targetA', name + '/targetC'])
 
@@ -132,7 +133,7 @@ class Model():
         self.sess.run(self.store_op, feed_dict = dict_all)
         return {
                 self.reward: reward, self.helper_reward:helper_reward, self.raw_reward: raw_reward, 
-                self.rewardStd: rewardStd, self.tot_reward: tot_reward, self.lrA:1e-4, self.ent_coef:0.01
+                self.rewardStd: rewardStd, self.tot_reward: tot_reward, self.ent_coef:0.01
             }
 
     def forward(self, ent_coef):
@@ -197,7 +198,7 @@ class Model():
             collate.append(sess.run(ops, feed_dict = feed_dict)) # B, ACT / B, 1
         return [np.stack(x) for x in zip(*collate)] # N, B, ACT / N, B, 1
 
-    def _register_summaries(self, name, tag):
+    def summary(self):
         # tf.Summary & Writer
         self.reward = tf.placeholder(tf.float32, [None, 1])
         self.raw_reward = tf.placeholder(tf.float32, [None, 1])
@@ -220,8 +221,4 @@ class Model():
                 'cumulative_reward': self.tot_reward,
                 'loss': self.loss,
             }
-        summaries = [tf.summary.scalar(k, v) for k,v in summaries.items()]
-        print(tf.trainable_variables())
-        merge = tf.summary.merge(summaries)
-        writer = tf.summary.FileWriter('./log/' + f'submodel_{name}_{tag}/', self.sess.graph)
-        return merge, writer
+        return [tf.summary.scalar(self.name + "/" + k, v) for k,v in summaries.items()]

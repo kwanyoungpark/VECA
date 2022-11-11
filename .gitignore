@@ -4,3 +4,7 @@ __pycache__
 asset
 bin
 events.out.tfevents.*
+*.index
+*.meta
+*.data-00000-of-00001
+*checkpoint

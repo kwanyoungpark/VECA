@@ -1,6 +1,7 @@
 import tensorflow as tf
 import math
 import numpy as np
+import os
 class ParamBackup:
     def __init__(self, sess, src_scopes, dst_scopes, backup_subsets = []):
         assert len(src_scopes) == len(dst_scopes)
@@ -121,3 +122,24 @@ def lr_schedule(lr, step, decay_step, ratio):
         return lr * step / decay_step
     else:
         return lr * np.power(ratio, (step / decay_step - 1))
+
+class Saver:
+    def __init__(self, sess, max_to_keep = 5):
+        self.sess = sess
+        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=max_to_keep)
+        self.loader = tf.train.Saver(tf.trainable_variables())
+        self.filename = "model"
+
+    def save(self, ckpt_dir, global_step):
+        os.makedirs(ckpt_dir, exist_ok = True)
+        self.saver.save(self.sess, os.path.join(ckpt_dir, self.filename), global_step = global_step)
+        print("Saved model to path:", ckpt_dir)
+
+    def load_if_exists(self, ckpt_dir):
+        if os.path.exists(ckpt_dir):
+            ckpt = tf.train.latest_checkpoint(ckpt_dir)
+            if ckpt is not None:
+                print("Loading model from path:", ckpt_dir)
+                self.loader.restore(self.sess, ckpt)
+        else:
+            print("Given checkpoint directory does not exist")
