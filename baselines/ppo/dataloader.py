@@ -2,25 +2,29 @@ import numpy as np
 from collections import defaultdict
 
 class EnvDataLoader(): #TODO Make it as a generator (DataLoader pov)
-    def __init__(self, env):
+    def __init__(self, env, curriculum):
         self.cache = defaultdict(list)
         self.env = env
         #self.reset()
+        self.curriculum = curriculum
 
     def reset(self, replay_buffer):
         self.env.reset()
         action = np.zeros([self.env.num_agents, self.env.action_space])
         obs,reward,done,infos = self.env.step(action)
+        reward = {"helper_reward": self.curriculum.guide(infos, reward), "raw_reward": reward }
         replay_buffer.add(obs,reward,done,action, clear = True)
 
     def step(self, action, replay_buffer):
         obs,reward,done, infos = self.env.step(self._filter_action(action))
+        reward = {"helper_reward": self.curriculum.guide(infos, reward), "raw_reward": reward }
         replay_buffer.add(obs,reward,done, action, clear = False)
         return obs, reward, done, infos
         
     def sample(self, replay_buffer):
         action = np.random.rand(self.env.num_agents, self.env.action_space)
         obs,reward,done,infos = self.env.step(action)
+        reward = {"helper_reward": self.curriculum.guide(infos, reward), "raw_reward": reward }
         replay_buffer.add(obs,reward,done,action, clear = False)
         return obs,reward,done,infos
     
@@ -34,10 +38,10 @@ class EnvDataLoader(): #TODO Make it as a generator (DataLoader pov)
         return action
 
 class MultiTaskDataLoader:
-    def __init__(self, envs):
+    def __init__(self, envs, curriculum):
         self.heads = []
         for env in envs:
-            self.heads.append(EnvDataLoader(env = env))
+            self.heads.append(EnvDataLoader(env = env, curriculum = curriculum))
 
     def step(self, actions,replay_buffers):
         assert len(actions) == len(self.heads)

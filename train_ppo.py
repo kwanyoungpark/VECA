@@ -9,6 +9,7 @@ import veca.gym
 import random
 import time
 from baselines.ppo.dataloader import MultiTaskDataLoader
+from baselines.ppo.curriculum import Curriculum
 
 
 if __name__ == "__main__":
@@ -26,12 +27,15 @@ if __name__ == "__main__":
     NUM_UPDATE = 1
     TRAIN_LOOP = 4
     TIME_STEP = 128
-    BUFFER_LENGTH = 2500
+    BUFFER_LENGTH = 128
     HORIZON = 1280
     GAMMA = 0.99
     LAMBDA = 0.95
     NUM_CHUNKS = 4
     TIME_STEP = 128
+    entropy_coeff = 0.01
+    STAGE1 = 500#1_000_000
+    STAGE2 = 1000#3_000_000
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -58,22 +62,18 @@ if __name__ == "__main__":
                 summary = self.sess.run(merge, feed_dict = summary_dict)
                 self.writer.add_summary(summary, global_step)
 
-
-    dl = MultiTaskDataLoader(envs)
+    dl = MultiTaskDataLoader(envs, curriculum = Curriculum(STAGE1,STAGE2))
     buffers = MultiTaskReplayBuffer(len(envs), buffer_length=BUFFER_LENGTH, timestep=TIME_STEP)
 
     dl.reset(buffers)
 
     obs_sample = buffers.sample_batch()
-
     model = MTLModel(envs, sess, obs_sample, tag)
 
     result_dir = os.path.join("work_dir", tag)
 
     logger = TensorboardLogger(sess, model.summary(), [submodel.summary() for submodel in model.models], logdir=result_dir)
     lr_scheduler = AdaptiveLR(schedule = True)
-    frac = 1.
-    entropy_coeff = 0.01 * frac
 
     saver = Saver(sess)
     saver.load_if_exists(ckpt_dir = result_dir)
@@ -85,42 +85,28 @@ if __name__ == "__main__":
         obs, reward, done, infos = dl.step(actions,buffers)
 
         if (step+1) % TIME_STEP == 0:
-            start = time.time()
             batches = buffers.sample_batch()
-            print("ElapsedC:", time.time() - start, "ms")
 
-            start = time.time()
             summarys = model.feed_batch(batches)
-            print("ElapsedD:", time.time() - start, "ms")
-            start = time.time()
+
             loss, loss_agent, loss_critic, ratio, pg_loss, grad = model.forward(ent_coef = entropy_coeff)
-            print("ElapsedE:", time.time() - start, "ms")
             
-            start = time.time()
             for idx in range(TRAIN_LOOP):
                 approxkl = model.optimize_step(lr = lr_scheduler.lrA / (TRAIN_LOOP), ent_coef = entropy_coeff)
                 if approxkl > 0.01: break
-            print("ElapsedF:", time.time() - start, "ms")
             
-            start = time.time()
             lossP, _, _, _, _, _ = model.forward(ent_coef = entropy_coeff)
-            print("ElapsedG:", time.time() - start, "ms")
 
-            start = time.time()
             lr_scheduler.step(model.backup, approxkl, loss, lossP)
-            print("ElapsedH:", time.time() - start, "ms")
 
             buffers.clear()
 
-            start = time.time()
             logger.log({model.summary_dict["lr"]:lr_scheduler.lrA, model.summary_dict["ent_coeff"]:entropy_coeff}, summarys,step)
             #model.log(summarys, lr_scheduler.lrA, entropy_coeff, step)
             if approxkl <= 0.01: print("KLD {:.3f}, updated full gradient step.".format(approxkl))
             else: print("KLD {:.3f}, early stopping.".format(approxkl))
             print("STEP", step, "Loss {:.5f} Aloss {:.5f} Closs {:.5f} Maximum ratio {:.5f} pg_loss {:.5f} grad {:.5f}".format(
                 loss, loss_agent, loss_critic, ratio, pg_loss, grad))
-            print("ElapsedI:", time.time() - start, "ms")
-
         if (step+1) % HORIZON == 0:
             dl.reset(buffers)
         if step % SAVE_STEP == 0:

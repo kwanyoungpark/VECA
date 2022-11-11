@@ -36,7 +36,10 @@ class ReplayBuffer():
         if clear: self.obs_prev = obs
         obs_prev = {"prev/" + k:v for k,v in self.obs_prev.items()}
 
-        ddict = self._merge_dicts(obs_cur, obs_prev, {"helper_reward": np.zeros_like(reward)},{"raw_reward":reward}, {"done":done}, {"action":action})
+        if isinstance(reward, dict):
+            ddict = self._merge_dicts(obs_cur, obs_prev, {"helper_reward": reward["helper_reward"]},{"raw_reward":reward["raw_reward"]}, {"done":done}, {"action":action})
+        else:
+            ddict = self._merge_dicts(obs_cur, obs_prev, {"helper_reward": np.zeros_like(reward)},{"raw_reward":reward}, {"done":done}, {"action":action})
 
         self._add_dict(ddict)
         self.obs_prev = obs
