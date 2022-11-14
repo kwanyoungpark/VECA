@@ -8,7 +8,7 @@ class Curriculum:
         goodpos = infos['agent/goodpos']
         badpos = infos['agent/badpos']
         N = 15
-        func = lambda x : 0.01 * np.floor(N * np.exp((- 0.25) * x )) / N
+        func = lambda x : 0.0005 * np.floor(N * np.exp((- 0.25) * x )) / N
         if (self.step < self.stage1):
             helper_reward = np.zeros_like(reward)
         elif self.stage1 <= self.step and self.step < self.stage2:
