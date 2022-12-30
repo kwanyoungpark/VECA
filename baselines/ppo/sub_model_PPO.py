@@ -177,7 +177,7 @@ class Model():
         assert done.shape == (timestep, num_agents)
         cum_reward = np.zeros_like(reward) # TS, NA 
         for i in range(num_agents):
-            done[-1, i] = reward[-1, i] # THIS IS WEIRD
+            #done[-1, i] = reward[-1, i] # THIS IS WEIRD
             for t in reversed(range(timestep-1)):
                 if done[t,i]:
                     cum_reward[t,i] = reward[t,i]

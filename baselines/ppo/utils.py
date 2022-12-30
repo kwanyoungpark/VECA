@@ -136,10 +136,13 @@ class Saver:
         print("Saved model to path:", ckpt_dir)
 
     def load_if_exists(self, ckpt_dir):
+        steps = 0
         if os.path.exists(ckpt_dir):
             ckpt = tf.train.latest_checkpoint(ckpt_dir)
             if ckpt is not None:
                 print("Loading model from path:", ckpt_dir)
                 self.loader.restore(self.sess, ckpt)
+                steps = int(os.path.basename(os.path.splitext(ckpt)[0]).split("-")[-1])
         else:
             print("Given checkpoint directory does not exist")
+        return steps

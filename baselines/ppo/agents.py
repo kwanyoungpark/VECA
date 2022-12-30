@@ -153,6 +153,14 @@ class UniversalEncoder():
             elif "agent/wav" in key: wav = data[key]
             elif "agent/obj" in key: obj = data[key]
             elif "agent/touch" in key: touch = data[key]
+            elif "agent/goodobj" in key: 
+                B = img.get_shape()[0]
+                print("GoodObj Recognized")
+                goodobj = (tf.reshape(data[key], (B,3)) - 12.5) / 12.5
+            elif "agent/badobj" in key:
+                B = img.get_shape()[0]
+                print("BadObj Recognized")
+                badobj = (tf.reshape(data[key], (B,3)) - 12.5) / 12.5
         B = img.get_shape()[0]
         im4, au1, ob1, to1 = (tf.zeros([B, self.hidden_size]), tf.zeros([B, self.hidden_size]), 
             tf.ones([B, self.hidden_size]), tf.zeros([B, self.hidden_size]))
@@ -210,10 +218,10 @@ class UniversalEncoder():
                     self.biases['bd1iT'] = tf.get_variable('bd1iA', [self.hidden_size])
                 to1 = dense(touch, self.weights['wd1wT'], self.biases['bd1wT'])
 
-            da0 = tf.concat([im4 * ob1, au1, to1], axis = 1)
+            da0 = tf.concat([im4 * ob1, au1, to1, goodobj, badobj], axis = 1)
             
             if not self.initialized:
-                self.weights['wd1dA'] = tf.get_variable('wd1dA', [self.hidden_size * 3, self.feature_size])
+                self.weights['wd1dA'] = tf.get_variable('wd1dA', [self.hidden_size * 3 + 3 * 2, self.feature_size])
                 self.biases['bd1dA'] = tf.get_variable('bd1dA', [self.feature_size])
             res = dense(da0, self.weights['wd1dA'], self.biases['bd1dA'], activation = 'tanh')
             self.initialized = True

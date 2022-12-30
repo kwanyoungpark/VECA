@@ -7,20 +7,29 @@ from baselines.ppo.replaybuffer import MultiTaskReplayBuffer
 from baselines.ppo.utils import AdaptiveLR, Saver
 import veca.gym
 import random
-import time
+import time, argparse
 from baselines.ppo.dataloader import MultiTaskDataLoader
 from baselines.ppo.curriculum import Curriculum
 
-
+# 1M 26 41
 if __name__ == "__main__":
-    tag = "PPO_COGNIANav"
-    PORT = 10000
+    
+    parser = argparse.ArgumentParser(description='VECA Navigation')
+    parser.add_argument('--stage1', type=int, 
+                        help='stage 1 init step', required = True)
+    parser.add_argument('--stage2', type=int, 
+                        help='stage 2 init step', required = True)
+    parser.add_argument('--step', type=int, default = 0)
+    parser.add_argument('--tag', type=str, default = "PPO_COGNIANav")
+    parser.add_argument('--gpuno', type=int, default = 0)
+    parser.add_argument('--port', type=int, default = 10008)
 
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+    args = parser.parse_args()
+    tag = args.tag
+    PORT = args.port
 
     num_envs = 1
-    TRAIN_STEP = 2000000
+    TRAIN_STEP = 20000000
     SAVE_STEP = 100_000
     REC_STEP = 100000
     NUM_CHUNKS = 4
@@ -34,8 +43,9 @@ if __name__ == "__main__":
     NUM_CHUNKS = 4
     TIME_STEP = 128
     entropy_coeff = 0.01
-    STAGE1 = 500#1_000_000
-    STAGE2 = 1000#3_000_000
+    STAGE1 = args.stage1
+    STAGE2 = args.stage2
+    print("STAGE1", STAGE1, "STAGE2", STAGE2)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -44,9 +54,9 @@ if __name__ == "__main__":
     envs = [veca.gym.make(
                 task = "cognianav",                                 # VECA task name
                 num_envs = num_envs,                                # Number of parallel environment instances to execute
-                args = ["--train"],                   # VECA task additional arguments. Append "--help" to list valid arguments.
+                args = ["--train", "--easy"],                   # VECA task additional arguments. Append "--help" to list valid arguments.
                 seeds = random.sample(range(0, 2000),num_envs ),    # seeds per env instances
-                remote_env = False                                  # Whether to use the Environment Orchestrator process at a remote server.
+                remote_env = True, port = PORT                      # Whether to use the Environment Orchestrator process at a remote server.
             )]
 
     class TensorboardLogger:
@@ -73,14 +83,14 @@ if __name__ == "__main__":
     result_dir = os.path.join("work_dir", tag)
 
     logger = TensorboardLogger(sess, model.summary(), [submodel.summary() for submodel in model.models], logdir=result_dir)
-    lr_scheduler = AdaptiveLR(schedule = True)
+    lr_scheduler = AdaptiveLR(schedule = False)
 
     saver = Saver(sess)
-    saver.load_if_exists(ckpt_dir = result_dir)
+    ckpt_steps = saver.load_if_exists(ckpt_dir = result_dir)
     
     obs, reward, done, infos = dl.sample(buffers)
 
-    for step in range(TRAIN_STEP):
+    for step in range(ckpt_steps,TRAIN_STEP):
         actions = model.get_action(obs)
         obs, reward, done, infos = dl.step(actions,buffers)
 

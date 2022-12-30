@@ -7,16 +7,23 @@ class EnvDataLoader(): #TODO Make it as a generator (DataLoader pov)
         self.env = env
         #self.reset()
         self.curriculum = curriculum
+    def _preprocess(self, obs, infos):
+        if "agent/img" in obs:
+            obs["agent/img"] = obs["agent/img"] / 128
+        obs["agent/goodobj"] = infos['agent/goodpos']
+        obs["agent/badobj"] = infos['agent/badpos']
 
     def reset(self, replay_buffer):
         self.env.reset()
         action = np.zeros([self.env.num_agents, self.env.action_space])
         obs,reward,done,infos = self.env.step(action)
+        self._preprocess(obs,infos)
         reward = {"helper_reward": self.curriculum.guide(infos, reward), "raw_reward": reward }
         replay_buffer.add(obs,reward,done,action, clear = True)
 
     def step(self, action, replay_buffer):
         obs,reward,done, infos = self.env.step(self._filter_action(action))
+        self._preprocess(obs,infos)
         reward = {"helper_reward": self.curriculum.guide(infos, reward), "raw_reward": reward }
         replay_buffer.add(obs,reward,done, action, clear = False)
         return obs, reward, done, infos
@@ -24,6 +31,7 @@ class EnvDataLoader(): #TODO Make it as a generator (DataLoader pov)
     def sample(self, replay_buffer):
         action = np.random.rand(self.env.num_agents, self.env.action_space)
         obs,reward,done,infos = self.env.step(action)
+        self._preprocess(obs,infos)
         reward = {"helper_reward": self.curriculum.guide(infos, reward), "raw_reward": reward }
         replay_buffer.add(obs,reward,done,action, clear = False)
         return obs,reward,done,infos
