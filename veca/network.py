@@ -122,7 +122,9 @@ def _encode(x) -> Tuple[str,str]:
     elif isinstance(x,np.ndarray):
         return "/".join(["array", npType_str[x.dtype], str(x.shape)]),  base64_ascii_encode(x.tobytes())
     elif any([isinstance(x, t) for t in [int, float]]):
-        return "primitive/" + Primitive_str[type(x)] , base64_ascii_encode(np.array([x]).tobytes())
+        if isinstance(x, int): dtype = np.int32
+        else: dtype = np.float64
+        return "primitive/" + Primitive_str[type(x)],base64_ascii_encode(np.array([x],dtype=dtype).tobytes())
     else:
         raise NotImplementedError("Not Implemented for type" + str(type(x)))
     '''

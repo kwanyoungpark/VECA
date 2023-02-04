@@ -93,12 +93,13 @@ class EnvOrchestrator():
         self.NUM_ENVS = packet["NUM_ENVS"]
         self.args = packet["args"]
         self.seeds = packet['seeds']
+        print("ORCHESTRATOR SEEDS:", self.seeds)
 
         self.ENVS_PER_ENV = self.TOTAL_NUM_ENVS // self.NUM_ENVS
         try:
             self.envs = []
             for i in range(self.NUM_ENVS):
-                if self.seeds is not None: args = self.args + ["-seed", str(self.seeds[i])]
+                if self.seeds is not None: args = self.args + ["--seed", str(self.seeds[i])]
                 else: args = self.args
                 self.envs.append(UnityInstance(self.ENVS_PER_ENV, self.port_instance + i, self.exec_str, args))
             self.envs = list(reversed(self.envs))

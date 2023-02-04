@@ -7,7 +7,8 @@ from typing import List
 class UnityInstance():
     def __init__(self, NUM_ENVS:int, port:int, exec_str:str, args:List[str]):
         self.NUM_ENVS = NUM_ENVS
-        exec_str = [exec_str] + args + ['--ip', 'localhost', '--port', str(port)]
+        exec_str = [exec_str] + args + ['--ip', '127.0.0.1', '--port', str(port)]
+        print("UnityINstance exec_str:", exec_str)
         self.start_connection(port, exec_str)
         self.handshake(NUM_ENVS)
     

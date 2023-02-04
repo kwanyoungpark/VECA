@@ -10,7 +10,7 @@ if __name__=="__main__":
     num_envs = 3
 
     env = veca.gym.make(
-        task = "cognianav",                    # VECA task name
+        task = "kicktheballrandomscene",                    # VECA task name
         num_envs = num_envs,                                # Number of parallel environment instances to execute
         args = ["-train"],                # VECA task additional arguments
         seeds = random.sample(range(0, 2000), num_envs),    # seeds per env instances
